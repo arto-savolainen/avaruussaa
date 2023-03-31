@@ -1,5 +1,5 @@
 const activityElement = document.getElementById('activity')
 
-window.electronAPI.onUpdateActivity((_event, value) => {
+window.electronAPI.onUpdateActivity((event, value) => {
     activityElement.innerText = value
 })
