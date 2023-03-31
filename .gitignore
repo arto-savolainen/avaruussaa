@@ -16,6 +16,7 @@ cypress/support/commands.js
 /build
 
 # misc
+getData.js
 datatest.js
 htmlresponse.txt
 .env
