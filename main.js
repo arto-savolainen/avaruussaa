@@ -1,13 +1,22 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, Notification } = require('electron')
 const path = require('path')
 const axios = require('axios')
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 let mainWindow
+let alertTreshold = 0.001 // Test value, final value maybe 0.5? let user change this
+
+const showNotification = (activity) => {
+  const NOTIFICATION_TITLE = null
+  const NOTIFICATION_BODY = `Revontulet todennäköisiä. Aktiivisuus ${activity} nT`
+
+  new Notification({
+    title: NOTIFICATION_TITLE,
+    body: NOTIFICATION_BODY,
+  }).show()
+}
 
 const fetchData = async () => {
-  const alertTreshold = 0.001 // Test value, final value maybe 0.5?
-
   var response
   try {
     response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
@@ -34,16 +43,18 @@ const fetchData = async () => {
   console.log(time, activity)
 
   return activity
-
-  // if (activity >= alertTreshold) {
-  //   const notificationText = `Revontulet todennäköisiä. Aktiivisuus ${activity} nT`
-  //   console.log(notificationText)
-  // }
 }
 
-const fetchDataAndSendToMainWindow = async () => {
-  console.log('update call received!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+const updateData = async () => {
+  console.log('update call received in updateData()!!!!!!!!!!')
   const activity = await fetchData()
+
+  // Show desktop notification about activity
+  if (activity >= alertTreshold) {
+    showNotification(activity)
+  }
+
+  // Send updated activity value to UI
   mainWindow.webContents.send('update-activity', activity)
 }
 
@@ -56,13 +67,13 @@ const createWindow = () => {
     }
   })
 
-  // Menu demo, get rid of this if no other menu items
+  // Test menu, get rid of this if no other menu items
   const menu = Menu.buildFromTemplate([
     {
       label: 'File',
       submenu: [
         {
-          click: () => fetchDataAndSendToMainWindow(),
+          click: () => updateData(),
           label: 'Update'
         },
         {
@@ -73,6 +84,7 @@ const createWindow = () => {
     }
   ])
   Menu.setApplicationMenu(menu)
+  // Menu.setApplicationMenu(null) do this when deleting menu
 
   mainWindow.loadFile('index.html')
 }
@@ -84,7 +96,7 @@ app.whenReady().then(() => {
   mainWindow.webContents.once('did-finish-load', () => {
     console.log('täällä ollaan mainWindow.webContents.once, ääkköset kusee electron konsolissa')
     // Get activity data and send it to the renderer
-    fetchDataAndSendToMainWindow()
+    updateData()
 
     // The website we get data from updates every ten minutes past the hour. Se we need to set a timer that triggers a data
     // fetching operation just after that update. However, the site can take a bit of time to update (up to some tens of seconds).
@@ -106,14 +118,14 @@ app.whenReady().then(() => {
         console.log('interval executing')
         var t = new Date(Date.now())
         console.log(`current time before data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
-        fetchDataAndSendToMainWindow()
+        updateData()
         t = new Date(Date.now())
         console.log(`current time after data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
 
       }, TEN_MINUTES_MS);
 
-      // First datafetch at the assumed site update time, after this fetching will happen at 10 minute intervals
-      fetchDataAndSendToMainWindow()
+      // Datafetch at the assumed site update time, after this fetching will happen at 10 minute intervals
+      updateData()
       console.log('end of timer, data sent?')
     }, timerMs);
   })
