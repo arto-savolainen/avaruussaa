@@ -1,5 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  onUpdateActivity: (callback) => ipcRenderer.on('update-activity', callback)
+  onSetUIConfiguration: (config) => ipcRenderer.on('set-config', config),
+  onUpdateActivity: (activity) => ipcRenderer.on('update-activity', activity),
+  setNotificationInterval: (interval) => ipcRenderer.send('set-interval', interval)
 })

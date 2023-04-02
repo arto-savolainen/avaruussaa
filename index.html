@@ -1,14 +1,47 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <style>
+      body {
+        color: #707070;
+      }
+      #menu-area {
+        height: 30;
+        width: 200;
+        -webkit-app-region: drag
+      }
+      #header {
+        text-align: center;
+      }
+      #activity {
+        text-align: center;
+        color: rgb(23, 23, 252);
+      }
+      #interval {
+        text-align: center;
+      }
+      #interval-input {
+        color: whitesmoke;
+        background-color: #404040;
+        text-align: center;
+      }
+
+    </style>
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <title>Avaruussää</title>
   </head>
   <body>
-    <h1 id="header">Activity</h1><button id="btn">loading...</button>
-    <div id="activity">Loading...</div>
+    <div id="menu-area">Avaruussää</div>
+    <h1 id="header">Activity</h1>
+    <h2 id="activity">Loading...</h2>
+    <div id="options">
+      <div id="interval">
+        Notification interval: <input id="interval-input" size="1"> hour(s)
+      </div>
+
+    </div>
     <script src="./rendererMain.js"></script>
   </body>
 </html>

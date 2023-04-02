@@ -1,19 +1,39 @@
-const { app, BrowserWindow, Menu, Notification } = require('electron')
+const { app, BrowserWindow, Menu, Notification, ipcMain } = require('electron')
 const path = require('path')
 const axios = require('axios')
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 let mainWindow
-let alertTreshold = 0.001 // Test value, final value maybe 0.5? let user change this
+let appBackgroundColor = '#151515'
+let appTextColor = '#404040'
+let notificationTreshold = 0.001 // Test value, final value maybe 0.5? let user change this
+let notificationInterval = 0.1 // Minimum time between notifications in hours
+let notificationTimer
+let suppressNotification = false
 
 const showNotification = (activity) => {
-  const NOTIFICATION_TITLE = null
-  const NOTIFICATION_BODY = `Revontulet todennäköisiä. Aktiivisuus ${activity} nT`
+  // Don't show notification if notificationInterval time has not elapsed since the last one
+  if (suppressNotification) {
+    console.log('suppressing notification')
+    return
+  }
+
+  const NOTIFICATION_TITLE = 'Northern lights'
+  const NOTIFICATION_BODY = `Are likely. Magnetic activity is ${activity} nT`
 
   new Notification({
     title: NOTIFICATION_TITLE,
     body: NOTIFICATION_BODY,
   }).show()
+
+  if (notificationInterval > 0) {
+    suppressNotification = true
+
+    console.log('setting notification timeout,', notificationInterval * 60 * 60, 'seconds')
+    notificationTimer = setTimeout(() => {
+      suppressNotification = false
+    }, notificationInterval * 60 * 60 * 1000)
+  }
 }
 
 const fetchData = async () => {
@@ -50,7 +70,7 @@ const updateData = async () => {
   const activity = await fetchData()
 
   // Show desktop notification about activity
-  if (activity >= alertTreshold) {
+  if (activity >= notificationTreshold) {
     showNotification(activity)
   }
 
@@ -62,41 +82,45 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 300,
     height: 200,
+    resizable: false,
+    backgroundColor: appBackgroundColor,
+    // frame: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: appBackgroundColor,
+      symbolColor: appTextColor,
+      height: 30
+    },
     webPreferences: {
       preload: path.join(__dirname, 'preloadMain.js')
     }
   })
 
-  // Test menu, get rid of this if no other menu items
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [
-        {
-          click: () => updateData(),
-          label: 'Update'
-        },
-        {
-          click: () => app.quit(),
-          label: 'Quit',
-        }
-      ]
-    }
-  ])
-  Menu.setApplicationMenu(menu)
-  // Menu.setApplicationMenu(null) do this when deleting menu
-
+  Menu.setApplicationMenu(null)
+  
   mainWindow.loadFile('index.html')
+}
+
+const initializeUI = () => {
+  console.log('initializeUI')
+  mainWindow.webContents.send('set-config', { notificationTreshold, notificationInterval })
+
+  // Get activity data, show notification if needed and send data to the renderer
+  updateData()
 }
 
 app.whenReady().then(() => {
   createWindow()
+  mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
     console.log('täällä ollaan mainWindow.webContents.once, ääkköset kusee electron konsolissa')
-    // Get activity data and send it to the renderer
-    updateData()
+    initializeUI()
+    
+    // ----------------------------------
+    // Set timers for data fetching below
+    // ----------------------------------
 
     // The website we get data from updates every ten minutes past the hour. Se we need to set a timer that triggers a data
     // fetching operation just after that update. However, the site can take a bit of time to update (up to some tens of seconds).
@@ -107,7 +131,7 @@ app.whenReady().then(() => {
     const offsetSeconds = 60 - time.getSeconds()
     console.log('time:', time, 'minutes:', time.getMinutes(), 'offset:', offsetMinutes)
     // Time in milliseconds until the clock is 11 minutes past, 21 past, etc.
-    const timerMs = offsetMinutes * 60 * 1000 + offsetSeconds * 1000
+    const timerMs = (offsetMinutes * 60 + offsetSeconds) * 1000
 
     // Set timer to trigger data fetching at the right time
     console.log('starting timer of', timerMs / 1000, 'seconds')
@@ -128,6 +152,26 @@ app.whenReady().then(() => {
       updateData()
       console.log('end of timer, data sent?')
     }, timerMs);
+  })
+
+  ipcMain.on('set-interval', (event, interval) => {
+    console.log('setting interval to:', interval)
+    notificationInterval = interval
+
+
+    // CHANGE THIS LOGIC 
+    // so that notifications are suppressed for notificationInterval - time remaining on current noti timer
+    // so in effect it behaves as if any existing notification timer is "changed" to obey the new interval
+
+    clearTimeout(notificationTimer)
+
+    suppressNotification = true
+
+    notificationTimer = setTimeout(() => {
+      suppressNotification = false
+      console.log('zero second timeout executed')
+      console.log('noti interval:', notificationInterval)
+    }, notificationInterval * 60 * 60 * 1000);
   })
 
   // macOS stuff
