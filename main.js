@@ -7,14 +7,14 @@ const HOURS_TO_MS = 60 * 60 * 1000
 let mainWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
-let notificationTreshold = 0.001 // Test value, final value maybe 0.5? let user change this
+let notificationTreshold = 0.4 // Test value, let user change this
 let notificationInterval = 0 // Minimum time between notifications in hours
 let intervalTimer
 let intervalTimerStart
 let suppressNotification = false
 let firstAlert = true
 let station = { name: 'Nurmijärvi', code: 'NUR' }
-let tray = null;
+let tray = null
 
 const startIntervalTimer = (time) => {
   if (intervalTimer) {
@@ -74,7 +74,7 @@ const fetchData = async () => {
   data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
   const time = new Date(data[data.length - 1][0]) //temp
   const activity = data[data.length - 1][1]
-  console.dir(data, {'maxArrayLength': null})
+  // console.dir(data, {'maxArrayLength': null})
   console.log(time, activity)
 
   return activity
@@ -95,7 +95,11 @@ const updateData = async () => {
 
 const initializeUI = () => {
   console.log('initializeUI')
-  mainWindow.webContents.send('set-config', { notificationTreshold, notificationInterval })
+  mainWindow.webContents.send('set-config',
+    {
+      notificationTreshold, notificationInterval
+    }
+  )
 
   // Get activity data, show notification if needed and send data to the renderer
   updateData()
@@ -111,7 +115,6 @@ const createWindow = () => {
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: appBackgroundColor,
-      color: '#00000000',
       symbolColor: appTextColor,
       height: 30
     },
@@ -153,7 +156,7 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createWindow()
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -231,8 +234,13 @@ app.whenReady().then(() => {
       }
     }
 
-    console.log('setting interval to:', newInterval)
+    console.log('in main setting interval to:', newInterval)
     notificationInterval = newInterval
+  })
+
+  ipcMain.on('set-treshold', (event, newTreshold) => {
+    console.log('in main setting treshold to:', newTreshold)
+    notificationTreshold = newTreshold
   })
 
   // macOS stuff
