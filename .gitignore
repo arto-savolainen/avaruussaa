@@ -16,6 +16,8 @@ cypress/support/commands.js
 /build
 
 # misc
+revontuli.jpg
+revontulibackup.jpg
 getData.js
 datatest.js
 htmlresponse.txt

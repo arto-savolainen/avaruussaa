@@ -1,43 +1,59 @@
-const { app, BrowserWindow, Menu, Notification, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, Notification, ipcMain, Tray, shell } = require('electron')
 const path = require('path')
 const axios = require('axios')
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
+const HOURS_TO_MS = 60 * 60 * 1000
 let mainWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
 let notificationTreshold = 0.001 // Test value, final value maybe 0.5? let user change this
-let notificationInterval = 0.1 // Minimum time between notifications in hours
-let notificationTimer
+let notificationInterval = 0 // Minimum time between notifications in hours
+let intervalTimer
+let intervalTimerStart
 let suppressNotification = false
+let firstAlert = true
+let station = { name: 'Nurmijärvi', code: 'NUR' }
+let tray = null;
+
+const startIntervalTimer = (time) => {
+  if (intervalTimer) {
+    console.log('clearing intervalTimer with clearTimeout()')
+    clearTimeout(intervalTimer)
+  }
+
+  intervalTimer = setTimeout(() => {
+    console.log('executing intervalTimer setTimeout: suppression end')
+    suppressNotification = false
+    intervalTimer = null
+    intervalTimerStart = null
+  }, time)
+}
 
 const showNotification = (activity) => {
   // Don't show notification if notificationInterval time has not elapsed since the last one
-  if (suppressNotification) {
+  if (suppressNotification && !firstAlert) {
     console.log('suppressing notification')
     return
   }
 
-  const NOTIFICATION_TITLE = 'Northern lights'
-  const NOTIFICATION_BODY = `Are likely. Magnetic activity is ${activity} nT`
+  firstAlert = false
 
   new Notification({
-    title: NOTIFICATION_TITLE,
-    body: NOTIFICATION_BODY,
+    title: 'Northern lights likely',
+    body: `Magnetic activity at ${station.name}: ${activity} nT`,
   }).show()
 
   if (notificationInterval > 0) {
     suppressNotification = true
-
     console.log('setting notification timeout,', notificationInterval * 60 * 60, 'seconds')
-    notificationTimer = setTimeout(() => {
-      suppressNotification = false
-    }, notificationInterval * 60 * 60 * 1000)
+    intervalTimerStart = new Date()
+    startIntervalTimer(notificationInterval * HOURS_TO_MS)
   }
 }
 
 const fetchData = async () => {
-  var response
+  let response
   try {
     response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
       // Query URL without using browser cache
@@ -52,14 +68,13 @@ const fetchData = async () => {
   }
 
   const responseBody = response.data // html+javascript response which includes the data we want
-  var data = responseBody.split('NUR\\\":{\\\"dataSeries\\\":') // Split response string starting from the position where the data we are interested in begins
+  const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
+  let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
   data = data[1].split('},', 1) // Split again where the data we want ends, discarding everything after it
   data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
-
-  // var time = formatTime(data[data.length - 1][0]) // if we need to display time
   const time = new Date(data[data.length - 1][0]) //temp
   const activity = data[data.length - 1][1]
-  // console.log(data[data.length - 1])
+  console.dir(data, {'maxArrayLength': null})
   console.log(time, activity)
 
   return activity
@@ -78,16 +93,25 @@ const updateData = async () => {
   mainWindow.webContents.send('update-activity', activity)
 }
 
+const initializeUI = () => {
+  console.log('initializeUI')
+  mainWindow.webContents.send('set-config', { notificationTreshold, notificationInterval })
+
+  // Get activity data, show notification if needed and send data to the renderer
+  updateData()
+}
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 300,
     height: 200,
     resizable: false,
+    icon: 'icon.png',
     backgroundColor: appBackgroundColor,
-    // frame: false,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: appBackgroundColor,
+      color: '#00000000',
       symbolColor: appTextColor,
       height: 30
     },
@@ -97,21 +121,39 @@ const createWindow = () => {
   })
 
   Menu.setApplicationMenu(null)
-  
+
   mainWindow.loadFile('index.html')
 }
 
-const initializeUI = () => {
-  console.log('initializeUI')
-  mainWindow.webContents.send('set-config', { notificationTreshold, notificationInterval })
+const createTray = () => {
+  let appIcon = new Tray(path.join(__dirname, "icon.png"))
 
-  // Get activity data, show notification if needed and send data to the renderer
-  updateData()
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show', click: () => {
+        mainWindow.show()
+      }
+    },
+    {
+      label: 'Exit', click: () => {
+        app.quit()
+      }
+    }
+  ])
+
+  appIcon.on('double-click', (event) => {
+    mainWindow.show()
+  })
+
+  appIcon.setToolTip('Avaruussää')
+  appIcon.setContextMenu(contextMenu)
+
+  return appIcon;
 }
 
 app.whenReady().then(() => {
   createWindow()
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -125,7 +167,7 @@ app.whenReady().then(() => {
     // The website we get data from updates every ten minutes past the hour. Se we need to set a timer that triggers a data
     // fetching operation just after that update. However, the site can take a bit of time to update (up to some tens of seconds).
     // Here we get how many minutes until update happens from the present moment.
-    time = new Date(Date.now())
+    time = new Date()
     const offsetMinutes = 10 - (time.getMinutes() % 10)
     // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
     const offsetSeconds = 60 - time.getSeconds()
@@ -140,10 +182,10 @@ app.whenReady().then(() => {
       // and call the data fetch function every 10 minutes.
       setInterval(() => {
         console.log('interval executing')
-        var t = new Date(Date.now())
+        var t = new Date()
         console.log(`current time before data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
         updateData()
-        t = new Date(Date.now())
+        t = new Date()
         console.log(`current time after data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
 
       }, TEN_MINUTES_MS);
@@ -154,24 +196,43 @@ app.whenReady().then(() => {
     }, timerMs);
   })
 
-  ipcMain.on('set-interval', (event, interval) => {
-    console.log('setting interval to:', interval)
-    notificationInterval = interval
+  mainWindow.on('minimize', (event) => {
+    event.preventDefault()
+    mainWindow.hide()
+    tray = createTray()
+  })
 
+  mainWindow.on('restore', (event) => {
+    mainWindow.show()
+    tray.destroy()
+  })
 
-    // CHANGE THIS LOGIC 
-    // so that notifications are suppressed for notificationInterval - time remaining on current noti timer
-    // so in effect it behaves as if any existing notification timer is "changed" to obey the new interval
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault()
+    shell.openExternal(url)
+  })
 
-    clearTimeout(notificationTimer)
+  ipcMain.on('set-interval', (event, newInterval) => {
+    if (intervalTimerStart) {
+      // With this the notification suppression timer behaves as if the old timer was started with the new interval
+      const timeLeft = (intervalTimerStart.getTime() + newInterval * HOURS_TO_MS) - Date.now()
+      console.log('timeLeft in minutes:', timeLeft / 1000 / 60)
 
-    suppressNotification = true
+      // If there's suppression time left with the new interval
+      if (timeLeft > 0) {
+        startIntervalTimer(timeLeft)
+      }
+      // If notification would have cleared already with the new interval
+      else {
+        clearTimeout(intervalTimer) // Not strictly necessary I guess, just clear redundant timer
+        suppressNotification = false
+        intervalTimer = null
+        intervalTimerStart = null
+      }
+    }
 
-    notificationTimer = setTimeout(() => {
-      suppressNotification = false
-      console.log('zero second timeout executed')
-      console.log('noti interval:', notificationInterval)
-    }, notificationInterval * 60 * 60 * 1000);
+    console.log('setting interval to:', newInterval)
+    notificationInterval = newInterval
   })
 
   // macOS stuff

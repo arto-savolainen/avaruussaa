@@ -1,5 +1,6 @@
 const activityElement = document.getElementById('activity')
 const intervalInput = document.getElementById('interval-input')
+const paska = document.getElementById('paska')
 
 let notificationTreshold = 0
 let validInterval = 0 // This is used to hold the last valid value of the notification interval input field, to cancel invalid input
@@ -28,7 +29,7 @@ window.electronAPI.onUpdateActivity((event, activity) => {
 })
 
 // Clear input box when user clicks on it
-intervalInput.addEventListener('focus', (event) => {
+intervalInput.addEventListener('click', (event) => {
   intervalInput.value = ''
 })
 
@@ -46,7 +47,7 @@ intervalInput.addEventListener('input', (event) => {
   }
 })
 
-// Validate user input for the interval input element
+// Validate that user input for the interval input element is a number
 intervalInput.addEventListener('change', (event) => {
   if (isNaN(event.target.value) || isNaN(parseFloat(event.target.value))) {
     intervalInput.value = validInterval
