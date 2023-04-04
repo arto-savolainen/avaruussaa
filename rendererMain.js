@@ -5,6 +5,10 @@ const tresholdInput = document.getElementById('treshold-input')
 let notificationInterval
 let notificationTreshold
 
+
+// ------------------ HELPER FUNCTIONS ------------------
+
+
 // Receive updated activity value from main process
 updateActivityColor = () => {
   const activity = activityElement.innerText
@@ -19,6 +23,10 @@ updateActivityColor = () => {
     activityElement.style.color = 'rgb(23, 23, 252)'
   }
 }
+
+
+// ------------------ IPC RECEIVER FUNCTIONS ------------------
+
 
 // Receive UI configuration data from main process and initialize values
 window.electronAPI.onSetUIConfiguration((event, config) => {
@@ -38,26 +46,13 @@ window.electronAPI.onUpdateActivity((event, activity) => {
   updateActivityColor()
 })
 
+
 // ------------------ EVENT LISTENERS FOR interval-input -------------------
 
-
-// Clear input box when user clicks on it
-intervalInput.addEventListener('click', (event) => {
-  intervalInput.value = ''
-})
 
 // Save last valid input when user clicks outside of the interval input element
 intervalInput.addEventListener('focusout', (event) => {
   intervalInput.value = notificationInterval
-})
-
-// Limit length of text in interval input to 5 characters and prevent whitespace
-intervalInput.addEventListener('input', (event) => {
-  intervalInput.value = event.target.value.trim()
-
-  if (event.target.value.length > 5) {
-    intervalInput.value = event.target.value.substr(0, 5)
-  }
 })
 
 // Validate that user input for the interval input element is a number
@@ -71,34 +66,15 @@ intervalInput.addEventListener('change', (event) => {
   }
 })
 
-// Lose focus on interval input if user presses enter or esc.
-intervalInput.addEventListener("keydown", (event) => {
-  if (event.key === 'Enter' || event.key === 'Escape') {
-    intervalInput.blur()
-  }
-})
 
 // ------------------ EVENT LISTENERS FOR treshold-input -------------------
 
-
-// Clear input box when user clicks on it
-tresholdInput.addEventListener('click', (event) => {
-  tresholdInput.value = ''
-})
 
 // Save last valid input when user clicks outside of the interval input element
 tresholdInput.addEventListener('focusout', (event) => {
   tresholdInput.value = notificationTreshold
 })
 
-// Limit length of text in interval input to 5 characters and prevent whitespace
-tresholdInput.addEventListener('input', (event) => {
-  tresholdInput.value = event.target.value.trim()
-
-  if (event.target.value.length > 5) {
-    tresholdInput.value = event.target.value.substr(0, 5)
-  }
-})
 
 // Validate that user input for the interval input element is a positive number
 tresholdInput.addEventListener('change', (event) => {
@@ -112,65 +88,36 @@ tresholdInput.addEventListener('change', (event) => {
   }
 })
 
-// Lose focus on interval input if user presses enter or esc.
-tresholdInput.addEventListener("keydown", (event) => {
-  if (event.key === 'Enter' || event.key === 'Escape') {
-    tresholdInput.blur()
-  }
-})
+
+// -------- SHARED EVENT LISTENERS FOR interval-input AND treshold-input --------
 
 
-// Tried to make a universal function for setting the event listeners of input boxes but couldn't get this to work.
-// Would need to pass the interval / treshold variables as reference, which is not possible for primitives in javascript
-// Could use an array or object that contains both to pass by reference, but that's too hacky.
+const setSharedEventListeners = (element) => {
+  // Clear input box when user clicks on it
+  element.addEventListener('click', (event) => {
+    element.value = ''
+  })
 
-// const setEventListeners = (element, lastValid, ipcCall) => {
-//   // lastValid.valueOf = lastValid.toSource = lastValid.toString = () => { return val }
+  // Limit length of text in input box to 5 characters and prevent whitespace
+  element.addEventListener('input', (event) => {
+    element.value = event.target.value.trim()
 
-//   // Clear input box when user clicks on it
-//   element.addEventListener('click', (event) => {
-//     element.value = ''
-//   })
+    if (event.target.value.length > 5) {
+      element.value = event.target.value.substr(0, 5)
+    }
+  })
 
-//   // Save last valid input when user clicks outside of the input box
-//   element.addEventListener('focusout', (event) => {
-//     element.value = lastValid
-//   })
+  // Lose focus on element if user presses enter or esc.
+  element.addEventListener("keydown", (event) => {
+    if (event.key === 'Enter' || event.key === 'Escape') {
+      element.blur()
+    }
+  })
+}
 
-//   // Limit length of text in input box to 5 characters and prevent whitespace
-//   element.addEventListener('input', (event) => {
-//     element.value = event.target.value.trim()
+setSharedEventListeners(intervalInput)
+setSharedEventListeners(tresholdInput)
 
-//     if (event.target.value.length > 5) {
-//       element.value = event.target.value.substr(0, 5)
-//     }
-//   })
-
-//   // Validate that user input for the element is a number
-//   element.addEventListener('change', (event) => {
-//     if (isNaN(event.target.value) || isNaN(parseFloat(event.target.value))) {
-//       element.value = lastValid
-//     }
-//     else {
-//       lastValid = event.target.value.trim()
-//       ipcCall(lastValid)
-
-//       // If user inputs a new treshold value, update activity element color as appropriate
-//       if (event.target.id == 'treshold-input') {
-//         console.log('lastValid:', lastValid)
-//         console.log('notificatioNTreshold:', notificationTreshold)
-//         updateActivityColor()
-//       }
-//     }
-//   })
-
-//   // Lose focus on element if user presses enter or esc.
-//   element.addEventListener("keydown", (event) => {
-//     if (event.key === 'Enter' || event.key === 'Escape') {
-//       element.blur()
-//     }
-//   })
-// }
-
-// setEventListeners(intervalInput, notificationInterval, window.electronAPI.setNotificationInterval)
-// setEventListeners(tresholdInput, notificationTreshold, window.electronAPI.setNotificationTreshold)
+// Tried to make a universal function for setting all of the event listeners for input boxes but couldn't get this to work.
+// Would need to pass the interval / treshold variables as reference, which is not possible for primitives in javascript.
+// Could use an array or object that contains both to pass by reference but that's so hacky it would defeat the purpose.
