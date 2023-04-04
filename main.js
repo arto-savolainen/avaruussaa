@@ -2,6 +2,8 @@ const { app, BrowserWindow, Menu, Notification, ipcMain, Tray, shell } = require
 const path = require('path')
 const axios = require('axios')
 
+const WINDOW_WIDTH = 300
+const WINDOW_HEIGHT = 250
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
 let mainWindow
@@ -107,8 +109,8 @@ const initializeUI = () => {
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 300,
-    height: 200,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
     resizable: false,
     icon: 'icon.png',
     backgroundColor: appBackgroundColor,
@@ -138,7 +140,7 @@ const createTray = () => {
       }
     },
     {
-      label: 'Exit', click: () => {
+      label: 'Quit', click: () => {
         app.quit()
       }
     }
@@ -151,12 +153,12 @@ const createTray = () => {
   appIcon.setToolTip('Avaruussää')
   appIcon.setContextMenu(contextMenu)
 
-  return appIcon;
+  return appIcon
 }
 
 app.whenReady().then(() => {
   createWindow()
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -171,15 +173,16 @@ app.whenReady().then(() => {
     // fetching operation just after that update. However, the site can take a bit of time to update (up to some tens of seconds).
     // Here we get how many minutes until update happens from the present moment.
     time = new Date()
-    const offsetMinutes = 10 - (time.getMinutes() % 10)
+    // Calculate how many minutes to the next time minutes are divisible by 10 (ie. 00, 10, 20 etc.)
+    let offsetMinutes = 10 - (time.getMinutes() % 10 === 0 ? 10 : time.getMinutes() % 10)
     // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
     const offsetSeconds = 60 - time.getSeconds()
     console.log('time:', time, 'minutes:', time.getMinutes(), 'offset:', offsetMinutes)
     // Time in milliseconds until the clock is 11 minutes past, 21 past, etc.
-    const timerMs = (offsetMinutes * 60 + offsetSeconds) * 1000
+    const timeMs = (offsetMinutes * 60 + offsetSeconds) * 1000
 
     // Set timer to trigger data fetching at the right time
-    console.log('starting timer of', timerMs / 1000, 'seconds')
+    console.log('starting timer of', timeMs / 1000, 'seconds')
     setTimeout(() => {
       // Here time is about 1 minute after assumed site update. Now we set a timer that will run through the lifetime of the program
       // and call the data fetch function every 10 minutes.
@@ -190,14 +193,22 @@ app.whenReady().then(() => {
         updateData()
         t = new Date()
         console.log(`current time after data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
-
+        mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
       }, TEN_MINUTES_MS);
 
       // Datafetch at the assumed site update time, after this fetching will happen at 10 minute intervals
       updateData()
+      mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
       console.log('end of timer, data sent?')
-    }, timerMs);
+    }, timeMs)
+
+    // Send update timer info to UI
+    mainWindow.webContents.send('set-next-update-timer', timeMs)
   })
+
+
+  // ------------------ USER ACTION HANDLERS ------------------
+
 
   mainWindow.on('minimize', (event) => {
     event.preventDefault()
@@ -214,6 +225,10 @@ app.whenReady().then(() => {
     event.preventDefault()
     shell.openExternal(url)
   })
+
+
+  // ------------------ IPC RECEIVER FUNCTIONS FOR MAIN ------------------
+
 
   ipcMain.on('set-interval', (event, newInterval) => {
     if (intervalTimerStart) {
@@ -251,4 +266,10 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit() // Exclude macOS ('darwin')
+})
+
+app.on('quit', () => {
+  if (tray) {
+    tray.destroy()
+  }
 })

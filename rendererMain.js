@@ -1,18 +1,18 @@
 const activityElement = document.getElementById('activity')
 const intervalInput = document.getElementById('interval-input')
 const tresholdInput = document.getElementById('treshold-input')
+const timerElement = document.getElementById('timer')
 
 let notificationInterval
 let notificationTreshold
+let timer
 
-
-// ------------------ HELPER FUNCTIONS ------------------
+// ------------------ UI UPDATE FUNCTIONS ------------------
 
 
 // Receive updated activity value from main process
-updateActivityColor = () => {
+const updateActivityColor = () => {
   const activity = activityElement.innerText
-  console.log('in updateActivityColor, activity:', activity)
 
   // If activity is at or above treshold, color the displayed value red
   if (activity >= notificationTreshold) {
@@ -24,26 +24,55 @@ updateActivityColor = () => {
   }
 }
 
+const updateTimerDisplay = (time) => {
+  time = time / 1000
 
-// ------------------ IPC RECEIVER FUNCTIONS ------------------
+  // Freeze time display at 00:00:00 (or whatever it last was) if something goes wrong
+  if (time < 0) {
+    return
+  }
+
+  let minutes = Math.floor(time / 60)
+  let seconds = time - minutes * 60
+
+  // Format the time display to look a little nicer - prepend zeroes if necessary
+  minutes = minutes < 10 ? `0${minutes}` : minutes
+  seconds = seconds < 10 ? `0${seconds}` : seconds
+
+  timerElement.innerText = `Next update in ${minutes}:${seconds}`
+}
+
+
+// ------------------ IPC RECEIVER FUNCTIONS FOR RENDERER ------------------
 
 
 // Receive UI configuration data from main process and initialize values
 window.electronAPI.onSetUIConfiguration((event, config) => {
-  console.log('in onSetUIConfiguration, config:', config)
   notificationInterval = config.notificationInterval
-  console.log('notificationInterval:', notificationInterval, 'config.notificatioInterval:', config.notificationInterval)
   notificationTreshold = config.notificationTreshold
   intervalInput.value = notificationInterval
-  console.log('intervalInput.value:', intervalInput.value, 'intervalInput.innerText', intervalInput.innerText)
   tresholdInput.value = notificationTreshold
 })
 
 // Receive updated activity value from main process
 window.electronAPI.onUpdateActivity((event, activity) => {
-  console.log('in onUpdateActivity, activity:', activity)
   activityElement.innerText = activity
   updateActivityColor()
+})
+
+// Receive time to next activity update from main process
+window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+
+  updateTimerDisplay(timeMs)
+  
+  timer = setInterval(() => {
+    timeMs = timeMs - 1000
+    updateTimerDisplay(timeMs)
+  }, 1000);
 })
 
 

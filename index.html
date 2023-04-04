@@ -2,12 +2,13 @@
 <html>
 
 <head>
-  <!-- body { background-image: url('bg.jpg'); background-size: cover; } -->
   <style>
     body {
       font-size: 14px;
       color: #707070;
       text-align: center;
+      /*background-image: url('bg.jpg');
+      background-size: cover; */
     }
 
     #menu-area {
@@ -21,13 +22,22 @@
       color: rgb(23, 23, 252);
     }
 
+    #timer {
+      font-size: 13px;
+    }
+
+    #options {
+      margin-top: 10px;
+    }
+
     .option {
       margin: 5px;
     }
 
     .input-box {
       color: whitesmoke;
-      background-color: #404040;
+      /*background-color: #404040; */
+      background-color: #202020;
       text-align: center;
     }
 
@@ -36,12 +46,14 @@
     }
 
     h2 {
+      font-size: 26px;
       margin: 5px;
       margin-bottom: 10px;
     }
 
     #link {
       margin: 0px;
+      padding: 0px;
       font-size: small;
     }
   </style>
@@ -55,6 +67,7 @@
   <div id="menu-area">Avaruussää</div>
   <h1 id="header">Activity</h1>
   <h2 id="activity">Loading...</h2>
+  <div id="timer">Next update in 00:00:00</div>
   <div id="options">
     <div id="interval" class="option">
       Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
@@ -63,6 +76,7 @@
       Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT
     </div>
   </div>
+  <br>
   <br>
   <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen laitos</a></div>
   <script src="./rendererMain.js"></script>
