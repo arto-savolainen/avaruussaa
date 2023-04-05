@@ -4,7 +4,10 @@
 <head>
   <style>
     body {
-      font-size: 14px;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: "Bahnschrift", sans-serif;
+      font-size: 15px;
       color: #707070;
       text-align: center;
       /*background-image: url('bg.jpg');
@@ -12,18 +15,37 @@
     }
 
     #menu-area {
+      margin: 0;
+      padding: 0;
       text-align: left;
       height: 30;
       width: 200;
-      -webkit-app-region: drag
+      -webkit-app-region: drag;
     }
 
-    #activity {
+    #header {
+      margin-top: 10px;
+      margin: 0px;
+    }
+
+    #activity-all {
       color: rgb(23, 23, 252);
     }
 
+    #activity {
+      font-family: "Calibri", sans-serif;
+      font-size: 30px;
+      margin-bottom: 10px;
+      margin-top: 0px;
+      display: inline-block;
+    }
+
+    #activity-unit {
+      font-family: "Calibri", sans-serif;
+    }
+
     #timer {
-      font-size: 13px;
+      font-size: 14px;
     }
 
     #options {
@@ -41,16 +63,6 @@
       text-align: center;
     }
 
-    h1 {
-      margin: 5px;
-    }
-
-    h2 {
-      font-size: 26px;
-      margin: 5px;
-      margin-bottom: 10px;
-    }
-
     #link {
       margin: 0px;
       padding: 0px;
@@ -64,19 +76,19 @@
 </head>
 
 <body>
-  <div id="menu-area">Avaruussää</div>
+  <!-- <div id="menu-area">&#8203;</div> -->
+  <div id="menu-area">&#8203;</div>
   <h1 id="header">Activity</h1>
-  <h2 id="activity">Loading...</h2>
-  <div id="timer">Next update in 00:00:00</div>
+  <div id="activity-all"><h2 id="activity">Loading...</h2><span id="activity-unit"> nT/s</span></div>
+  <div id="timer">Next update in 00:00</div>
   <div id="options">
     <div id="interval" class="option">
-      Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Alert interval: <input id="interval-input" class="input-box" size="1"> hour(s)
     </div>
     <div id="treshold" class="option">
-      Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT
+      Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
     </div>
   </div>
-  <br>
   <br>
   <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen laitos</a></div>
   <script src="./rendererMain.js"></script>

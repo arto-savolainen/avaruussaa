@@ -112,6 +112,8 @@ const createWindow = () => {
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
     resizable: false,
+    maximizable: false,
+    frame: false,
     icon: 'icon.png',
     backgroundColor: appBackgroundColor,
     titleBarStyle: 'hidden',
@@ -158,7 +160,7 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createWindow()
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {

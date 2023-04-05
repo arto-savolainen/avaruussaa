@@ -1,4 +1,5 @@
 const activityElement = document.getElementById('activity')
+const activityAll = document.getElementById('activity-all')
 const intervalInput = document.getElementById('interval-input')
 const tresholdInput = document.getElementById('treshold-input')
 const timerElement = document.getElementById('timer')
@@ -6,6 +7,13 @@ const timerElement = document.getElementById('timer')
 let notificationInterval
 let notificationTreshold
 let timer
+
+window.queryLocalFonts().then((x) => {
+  console.log('fonts', x)
+}).catch((x) => {
+  console.log('error')
+})
+
 
 // ------------------ UI UPDATE FUNCTIONS ------------------
 
@@ -16,11 +24,11 @@ const updateActivityColor = () => {
 
   // If activity is at or above treshold, color the displayed value red
   if (activity >= notificationTreshold) {
-    activityElement.style.color = 'rgb(235, 53, 53)'
+    activityAll.style.color = 'rgb(235, 53, 53)'
   }
   else {
     // Else color it blue
-    activityElement.style.color = 'rgb(23, 23, 252)'
+    activityAll.style.color = 'rgb(23, 23, 252)'
   }
 }
 
@@ -56,7 +64,7 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
 
 // Receive updated activity value from main process
 window.electronAPI.onUpdateActivity((event, activity) => {
-  activityElement.innerText = activity
+  activityElement.innerText = `${activity}`
   updateActivityColor()
 })
 
@@ -147,6 +155,6 @@ const setSharedEventListeners = (element) => {
 setSharedEventListeners(intervalInput)
 setSharedEventListeners(tresholdInput)
 
-// Tried to make a universal function for setting all of the event listeners for input boxes but couldn't get this to work.
+// Tried to make a universal function for setting all of the event listeners for input boxes but couldn't get it to work.
 // Would need to pass the interval / treshold variables as reference, which is not possible for primitives in javascript.
 // Could use an array or object that contains both to pass by reference but that's so hacky it would defeat the purpose.
