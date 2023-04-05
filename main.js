@@ -55,29 +55,37 @@ const showNotification = (activity) => {
 }
 
 const fetchData = async () => {
-  let response
-  try {
-    response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
-      // Query URL without using browser cache
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    })
-  } catch (error) {
-    console.error(`Error: ${error.message}`)
-  }
+  let activity
 
-  const responseBody = response.data // html+javascript response which includes the data we want
-  const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
-  let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
-  data = data[1].split('},', 1) // Split again where the data we want ends, discarding everything after it
-  data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
-  const time = new Date(data[data.length - 1][0]) //temp
-  const activity = data[data.length - 1][1]
-  // console.dir(data, {'maxArrayLength': null})
-  console.log(time, activity)
+  for (let i = 0; i < 3; i++) {
+    // console.log('WTF!!!!!!!!!!!!!!!!!!!!! i:', i, 'activity:', activity)
+    activity = null
+    let response
+
+    try {
+      response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
+        // Query URL without using browser cache
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      })
+    } catch (error) {
+      console.error(`Error: ${error.message}`)
+    }
+  
+    const responseBody = response.data // html+javascript response which includes the data we want
+    const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
+    let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
+    data = data[1].split('},', 1) // Split again where the data we want ends, discarding everything after it
+    data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
+    const time = new Date(data[data.length - 1][0]) //temp
+    activity = data[data.length - 1][1]
+    // console.dir(data, {'maxArrayLength': null})
+    console.log(data[data.length - 5], data[data.length - 4], data[data.length - 3], data[data.length - 2], data[data.length - 1])
+    console.log(time, activity, 'time now:', Date())
+  }
 
   return activity
 }
@@ -177,14 +185,14 @@ app.whenReady().then(() => {
     time = new Date()
     // Calculate how many minutes to the next time minutes are divisible by 10 (ie. 00, 10, 20 etc.)
     let offsetMinutes = 10 - (time.getMinutes() % 10 === 0 ? 10 : time.getMinutes() % 10)
-    // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
-    const offsetSeconds = 60 - time.getSeconds()
+    // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 2 minute buffer to updateö
+    const offsetSeconds = 119.2 - time.getSeconds() //Timer is a bit late so manually tune the value. 
     console.log('time:', time, 'minutes:', time.getMinutes(), 'offset:', offsetMinutes)
     // Time in milliseconds until the clock is 11 minutes past, 21 past, etc.
     const timeMs = (offsetMinutes * 60 + offsetSeconds) * 1000
 
-    // Set timer to trigger data fetching at the right time
-    console.log('starting timer of', timeMs / 1000, 'seconds')
+    // Set timer to trigger data fetching at the right time.
+    console.log('starting timer of', timeMs / 1000, 'seconds. Time now:', Date())
     setTimeout(() => {
       // Here time is about 1 minute after assumed site update. Now we set a timer that will run through the lifetime of the program
       // and call the data fetch function every 10 minutes.
@@ -195,16 +203,19 @@ app.whenReady().then(() => {
         updateData()
         t = new Date()
         console.log(`current time after data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
+        console.log('sending timer now at:', Date(), 'TEN_MINUTES_MS:', TEN_MINUTES_MS)
         mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
       }, TEN_MINUTES_MS);
 
       // Datafetch at the assumed site update time, after this fetching will happen at 10 minute intervals
       updateData()
+      console.log('sending timer now at:', Date(), 'TEN_MINUTES_MS:', TEN_MINUTES_MS)
       mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
       console.log('end of timer, data sent?')
     }, timeMs)
 
     // Send update timer info to UI
+    console.log('sending timer now at:', Date(), 'timeMs:', timeMs)
     mainWindow.webContents.send('set-next-update-timer', timeMs)
   })
 

@@ -7,12 +7,14 @@ const timerElement = document.getElementById('timer')
 let notificationInterval
 let notificationTreshold
 let timer
+let counter = 0
+let updateTime
 
-window.queryLocalFonts().then((x) => {
-  console.log('fonts', x)
-}).catch((x) => {
-  console.log('error')
-})
+// window.queryLocalFonts().then((x) => {
+//   console.log('fonts', x)
+// }).catch((x) => {
+//   console.log('error')
+// })
 
 
 // ------------------ UI UPDATE FUNCTIONS ------------------
@@ -33,7 +35,7 @@ const updateActivityColor = () => {
 }
 
 const updateTimerDisplay = (time) => {
-  time = time / 1000
+  time = Math.ceil(time / 1000)
 
   // Freeze time display at 00:00:00 (or whatever it last was) if something goes wrong
   if (time < 0) {
@@ -46,6 +48,8 @@ const updateTimerDisplay = (time) => {
   // Format the time display to look a little nicer - prepend zeroes if necessary
   minutes = minutes < 10 ? `0${minutes}` : minutes
   seconds = seconds < 10 ? `0${seconds}` : seconds
+
+  console.log(`UPDATING TIME, TIMER AT ${minutes}:${seconds}. TIME NOW: ${Date()} `)
 
   timerElement.innerText = `Next update in ${minutes}:${seconds}`
 }
@@ -68,8 +72,15 @@ window.electronAPI.onUpdateActivity((event, activity) => {
   updateActivityColor()
 })
 
-// Receive time to next activity update from main process
+// Receive time to next activity update from main process and run the timer updating UI
 window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
+  updateTime = Date.now() + timeMs
+
+  counter = counter + 1
+  console.log('COUNTER:', counter)
+  console.log('TIME NOW:', Date())
+  console.log('timeMs:', timeMs)
+
   if (timer) {
     clearInterval(timer)
     timer = null
@@ -78,8 +89,7 @@ window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
   updateTimerDisplay(timeMs)
   
   timer = setInterval(() => {
-    timeMs = timeMs - 1000
-    updateTimerDisplay(timeMs)
+    updateTimerDisplay(updateTime - Date.now())
   }, 1000);
 })
 

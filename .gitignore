@@ -16,6 +16,8 @@ cypress/support/commands.js
 /build
 
 # misc
+timingbug.png
+timingbug2.png
 revontuli.jpg
 revontulibackup.jpg
 getData.js
