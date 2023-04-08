@@ -23,6 +23,11 @@
       -webkit-app-region: drag;
     }
 
+    #settings-icon {
+      -webkit-app-region: no-drag;
+      cursor: pointer;
+    }
+
     #header {
       margin-top: 10px;
       margin: 0px;
@@ -68,30 +73,76 @@
       padding: 0px;
       font-size: small;
     }
+
+    #notification-toggle {
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+
+    #settings {
+      display: none;
+    }
+
   </style>
+  <link rel="stylesheet" href="toggle.css">
+
   <meta charset="UTF-8">
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
   <title>Avaruussää</title>
 </head>
-
 <body>
   <!-- <div id="menu-area">&#8203;</div> -->
-  <div id="menu-area">&#8203;</div>
-  <h1 id="header">Activity</h1>
-  <div id="activity-all"><h2 id="activity">Loading...</h2><span id="activity-unit"> nT/s</span></div>
-  <div id="timer">Next update in 00:00</div>
-  <div id="options">
-    <div id="interval" class="option">
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Alert interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+  <div id="menu-area"><img id="settings-icon" src="gear.png"></div>
+  <div id="main">
+    <h1 id="header">Activity</h1>
+    <div id="activity-all">
+      <h2 id="activity">Loading...</h2><span id="activity-unit"> nT/s</span>
     </div>
-    <div id="treshold" class="option">
-      Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
+    <div id="timer">Next update in 00:00</div>
+    <div id="options">
+      <div id="interval" class="option">
+        Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+      </div>
+      <div id="treshold" class="option">
+        Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
+      </div>
     </div>
+    <div id="notification-toggle">
+      <span id="toggle-text">Notifications </span>
+      <!-- Rounded switch -->
+      <label class="switch">
+        <input id="toggle-input" type="checkbox">
+        <span class="slider round"></span>
+      </label>
+    </div>
+    <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen
+        laitos</a></div>
   </div>
-  <br>
-  <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen laitos</a></div>
+  
+  <div id="settings">
+    <h1 id="header">Settings</h1>
+    <div id="options">
+      <div id="interval" class="option">
+        Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+      </div>
+      <div id="treshold" class="option">
+        Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
+      </div>
+    </div>
+    <div id="notification-toggle">
+      <span id="toggle-text">Notifications </span>
+      <!-- Rounded switch -->
+      <label class="switch">
+        <input id="toggle-input" type="checkbox">
+        <span class="slider round"></span>
+      </label>
+    </div>
+    <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen
+        laitos</a></div>
+  </div>
+  
   <script src="./rendererMain.js"></script>
-</body>
-
-</html>
+  </body>
+  
+  </html>

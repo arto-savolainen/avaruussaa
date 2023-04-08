@@ -7,6 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setNotificationInterval: (interval) => ipcRenderer.send('set-interval', interval),
   setNotificationTreshold: (treshold) => ipcRenderer.send('set-treshold', treshold),
   setNotificationToggle: (checked) => ipcRenderer.send('set-toggle', checked),
-  openSettings: () => ipcRenderer.send('open-settings'),
   closeSettings: () => ipcRenderer.send('close-settings')
 })

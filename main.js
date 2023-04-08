@@ -7,6 +7,7 @@ const WINDOW_HEIGHT = 250
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
 let mainWindow
+let settingsWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
 let notificationTreshold = 0.4 // Test value, let user change this
@@ -14,6 +15,7 @@ let notificationInterval = 0 // Minimum time between notifications in hours
 let intervalTimer
 let intervalTimerStart
 let suppressNotification = false
+let notificationToggleChecked = true
 let firstAlert = true
 let station = { name: 'Nurmijärvi', code: 'NUR' }
 let tray = null
@@ -33,8 +35,9 @@ const startIntervalTimer = (time) => {
 }
 
 const showNotification = (activity) => {
-  // Don't show notification if notificationInterval time has not elapsed since the last one
-  if (suppressNotification && !firstAlert) {
+  // Don't show notification if notificationInterval time has not elapsed since the last one, and it's not the first notification.
+  // Or if user has toggled notifications off.
+  if ((suppressNotification && !firstAlert) || !notificationToggleChecked) {
     console.log('suppressing notification')
     return
   }
@@ -103,9 +106,9 @@ const updateData = async () => {
   mainWindow.webContents.send('update-activity', activity)
 }
 
-const initializeUI = () => {
-  console.log('initializeUI')
-  mainWindow.webContents.send('set-config',
+const initializeUI = (window) => {
+  console.log('in initializeUI, window:', window)
+  window.webContents.send('set-config',
     {
       notificationTreshold, notificationInterval
     }
@@ -115,7 +118,7 @@ const initializeUI = () => {
   updateData()
 }
 
-const createWindow = () => {
+const createWindows = () => {
   mainWindow = new BrowserWindow({
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
@@ -135,9 +138,32 @@ const createWindow = () => {
     }
   })
 
+  settingsWindow = new BrowserWindow({
+    parent: mainWindow,
+    modal: true,
+    show: false,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
+    resizable: false,
+    maximizable: false,
+    frame: false,
+    icon: 'icon.png',
+    backgroundColor: appBackgroundColor,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: appBackgroundColor,
+      symbolColor: appTextColor,
+      height: 30
+    },
+    webPreferences: {
+      preload: path.join(__dirname, 'preloadSettings.js')
+    }
+  })
+
   Menu.setApplicationMenu(null)
 
   mainWindow.loadFile('index.html')
+  settingsWindow.loadFile('settings.html')
 }
 
 const createTray = () => {
@@ -167,13 +193,13 @@ const createTray = () => {
 }
 
 app.whenReady().then(() => {
-  createWindow()
+  createWindows()
   mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
     console.log('täällä ollaan mainWindow.webContents.once, ääkköset kusee electron konsolissa')
-    initializeUI()
+    initializeUI(mainWindow)
     
     // ----------------------------------
     // Set timers for data fetching below
@@ -185,8 +211,8 @@ app.whenReady().then(() => {
     time = new Date()
     // Calculate how many minutes to the next time minutes are divisible by 10 (ie. 00, 10, 20 etc.)
     let offsetMinutes = 10 - (time.getMinutes() % 10 === 0 ? 10 : time.getMinutes() % 10)
-    // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 2 minute buffer to updateö
-    const offsetSeconds = 119.2 - time.getSeconds() //Timer is a bit late so manually tune the value. 
+    // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
+    const offsetSeconds = 60 - time.getSeconds()
     console.log('time:', time, 'minutes:', time.getMinutes(), 'offset:', offsetMinutes)
     // Time in milliseconds until the clock is 11 minutes past, 21 past, etc.
     const timeMs = (offsetMinutes * 60 + offsetSeconds) * 1000
@@ -239,10 +265,39 @@ app.whenReady().then(() => {
     shell.openExternal(url)
   })
 
+  settingsWindow.on('close', (event) => {
+    event.preventDefault()
+    settingsWindow.hide()
+    mainWindow.show()
+  })
+
+  mainWindow.on('move', (event) => {
+    settingsWindow.setPosition(event.sender.getBounds().x, event.sender.getBounds().y)
+  })
+
+  settingsWindow.on('move', (event) => {
+    mainWindow.setPosition(event.sender.getBounds().x, event.sender.getBounds().y)
+  })
+
 
   // ------------------ IPC RECEIVER FUNCTIONS FOR MAIN ------------------
 
 
+  // Triggers when user clicks the settings icon in the top left corner
+  ipcMain.on('open-settings', (event) => {
+    mainWindow.loadFile('settings.html')
+    // settingsWindow.show()
+    // mainWindow.hide()
+  })
+
+  ipcMain.on('close-settings', (event) => {
+    console.log('CLOSE SETTINGS MAIN')
+    mainWindow.loadFile('index.html')
+    // settingsWindow.show()
+    // mainWindow.hide()
+  })
+
+  // Triggers when the user sets a new value for the minimum delay between notifications
   ipcMain.on('set-interval', (event, newInterval) => {
     if (intervalTimerStart) {
       // With this the notification suppression timer behaves as if the old timer was started with the new interval
@@ -266,14 +321,25 @@ app.whenReady().then(() => {
     notificationInterval = newInterval
   })
 
+  // Triggers when user sets a new value for the notification treshold
   ipcMain.on('set-treshold', (event, newTreshold) => {
     console.log('in main setting treshold to:', newTreshold)
     notificationTreshold = newTreshold
   })
 
+  // Triggers when user clicks the notifications on / off toggle
+  ipcMain.on('set-toggle', (event, checked) => {
+    console.log('in main setting checked to:', checked)
+    notificationToggleChecked = checked
+  })
+
+
+  // ------------------ MISC ------------------
+
+
   // macOS stuff
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) createWindows()
   })
 })
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: "Bahnschrift", sans-serif;
+      font-size: 15px;
+      color: #707070;
+      text-align: center;
+      /*background-image: url('bg.jpg');
+      background-size: cover; */
+    }
+
+    #menu-area {
+      margin: 0;
+      padding: 0;
+      text-align: left;
+      height: 30;
+      width: 200;
+      -webkit-app-region: drag;
+    }
+
+    #arrow-icon {
+      -webkit-app-region: no-drag;
+      cursor: pointer;
+    }
+
+    #header {
+      margin-top: 10px;
+      margin: 0px;
+    }
+
+    #activity-all {
+      color: rgb(23, 23, 252);
+    }
+
+    #activity {
+      font-family: "Calibri", sans-serif;
+      font-size: 30px;
+      margin-bottom: 10px;
+      margin-top: 0px;
+      display: inline-block;
+    }
+
+    #activity-unit {
+      font-family: "Calibri", sans-serif;
+    }
+
+    #timer {
+      font-size: 14px;
+    }
+
+    #options {
+      margin-top: 10px;
+    }
+
+    .option {
+      margin: 5px;
+    }
+
+    .input-box {
+      color: whitesmoke;
+      /*background-color: #404040; */
+      background-color: #202020;
+      text-align: center;
+    }
+
+    #link {
+      margin: 0px;
+      padding: 0px;
+      font-size: small;
+    }
+
+    #notification-toggle {
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+
+  </style>
+  <link rel="stylesheet" href="toggle.css">
+
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+  <title>Avaruussää</title>
+</head>
+<body>
+  <!-- <div id="menu-area">&#8203;</div> -->
+  <div id="menu-area"><img id='arrow-icon' src="arrow.png"></div>
+  <div id="options">
+    <div id="interval" class="option">
+      Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+    </div>
+    <div id="treshold" class="option">
+      Alert treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
+    </div>
+  </div>
+  <div id="notification-toggle">
+    <span id="toggle-text">Notifications </span>
+    <label class="switch">
+      <input id="toggle-input" type="checkbox">
+      <span class="slider round"></span>
+    </label>
+  </div>
+  <script src="./rendererSettings.js"></script>
+</body>
+
+</html>

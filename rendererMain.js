@@ -3,11 +3,17 @@ const activityAll = document.getElementById('activity-all')
 const intervalInput = document.getElementById('interval-input')
 const tresholdInput = document.getElementById('treshold-input')
 const timerElement = document.getElementById('timer')
+const toggleInput = document.getElementById('toggle-input')
+const settingsIcon = document.getElementById('settings-icon')
+
+const mainDiv = document.getElementById('main')
+const settingsDiv = document.getElementById('settings')
+
+toggleInput.checked = true
 
 let notificationInterval
 let notificationTreshold
 let timer
-let counter = 0
 let updateTime
 
 // window.queryLocalFonts().then((x) => {
@@ -34,8 +40,9 @@ const updateActivityColor = () => {
   }
 }
 
+// Update the display showing to the user how much time left until the next time activity is updated
 const updateTimerDisplay = (time) => {
-  time = Math.ceil(time / 1000)
+  time = Math.ceil(time / 1000) // Processing delay is also subtracted in the previous step, round up to fix this
 
   // Freeze time display at 00:00:00 (or whatever it last was) if something goes wrong
   if (time < 0) {
@@ -48,8 +55,6 @@ const updateTimerDisplay = (time) => {
   // Format the time display to look a little nicer - prepend zeroes if necessary
   minutes = minutes < 10 ? `0${minutes}` : minutes
   seconds = seconds < 10 ? `0${seconds}` : seconds
-
-  console.log(`UPDATING TIME, TIMER AT ${minutes}:${seconds}. TIME NOW: ${Date()} `)
 
   timerElement.innerText = `Next update in ${minutes}:${seconds}`
 }
@@ -75,11 +80,6 @@ window.electronAPI.onUpdateActivity((event, activity) => {
 // Receive time to next activity update from main process and run the timer updating UI
 window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
   updateTime = Date.now() + timeMs
-
-  counter = counter + 1
-  console.log('COUNTER:', counter)
-  console.log('TIME NOW:', Date())
-  console.log('timeMs:', timeMs)
 
   if (timer) {
     clearInterval(timer)
@@ -140,6 +140,7 @@ tresholdInput.addEventListener('change', (event) => {
 
 
 const setSharedEventListeners = (element) => {
+
   // Clear input box when user clicks on it
   element.addEventListener('click', (event) => {
     element.value = ''
@@ -165,6 +166,29 @@ const setSharedEventListeners = (element) => {
 setSharedEventListeners(intervalInput)
 setSharedEventListeners(tresholdInput)
 
-// Tried to make a universal function for setting all of the event listeners for input boxes but couldn't get it to work.
-// Would need to pass the interval / treshold variables as reference, which is not possible for primitives in javascript.
-// Could use an array or object that contains both to pass by reference but that's so hacky it would defeat the purpose.
+
+// ------------------ EVENT LISTENERS FOR toggle-input -------------------
+
+
+toggleInput.addEventListener('click', (event) => {
+  window.electronAPI.setNotificationToggle(toggleInput.checked)
+})
+
+
+// ------------------ EVENT LISTENERS FOR settings-icon -------------------
+
+  settingsIcon.addEventListener('click', (event) => {
+    // window.electronAPI.openSettings()
+
+    if (settingsDiv.style.display === 'none') {
+      mainDiv.style.display = 'none'
+      settingsDiv.style.display = 'block'
+      settingsIcon.src = 'arrow.png'
+    }
+    else {
+      settingsDiv.style.display = 'none'
+      mainDiv.style.display = 'block'
+      settingsIcon.src = 'gear.png'
+    }
+
+  })
