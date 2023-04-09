@@ -1,20 +1,33 @@
 const activityElement = document.getElementById('activity')
-const activityAll = document.getElementById('activity-all')
 const intervalInput = document.getElementById('interval-input')
 const tresholdInput = document.getElementById('treshold-input')
 const timerElement = document.getElementById('timer')
 const toggleInput = document.getElementById('toggle-input')
 const settingsIcon = document.getElementById('settings-icon')
 const trayInput = document.getElementById('tray-input')
+const stationElement = document.getElementById('station')
+const stationIcon = document.getElementById('station-icon')
+const stationsTable = document.getElementById('stations-table')
 
-const mainDiv = document.getElementById('main')
-const settingsDiv = document.getElementById('settings')
-settingsDiv.style.display = 'none'
+const mainDiv = document.getElementById('main-page')
+const settingsDiv = document.getElementById('settings-page')
+const stationsDiv = document.getElementById('stations-page')
+mainDiv.style.display = 'block'
+settingsDiv.style.display = 'none' // For some reason these are null when set with CSS only, though they display correctly
+stationsDiv.style.display = 'none'
+//"What you have in your CSS stylesheets has little to do with the style property of your element.
+//The style property only includes inline styles."
+
+const bodyStyle = getComputedStyle(document.getElementById('body'))
+const fontColor = bodyStyle.color
+const fontSize = bodyStyle.fontSize
 
 let notificationInterval
 let notificationTreshold
+let stationturha
+let stations
 let timer
-let updateTime
+let nextUpdateTime
 
 // window.queryLocalFonts().then((x) => {
 //   console.log('fonts', x)
@@ -27,16 +40,31 @@ let updateTime
 
 
 // Receive updated activity value from main process and display it in the main window
-const updateActivityColor = () => {
+const updateActivityStyle = () => {
   const activity = activityElement.innerText
+
+  // If station data is not available, style the message differently
+  if (isNaN(activity)) {
+    activityElement.style.color = fontColor // Use default font color when displaying 'data not found' message
+    activityElement.style.fontSize = fontSize // And default font size
+    activityElement.style.marginTop = '20px'
+    activityElement.style.marginBottom = '20px'
+    return
+  }
+
+  // Fix activity style from previous not found message, use default styles copied from css at the creation of the renderer
+  // Settings a style property to null reverts it back to CSS stylesheet definitions
+  activityElement.style.fontSize = null
+  activityElement.style.marginTop = null
+  activityElement.style.marginBottom = null
 
   // If activity is at or above treshold, color the displayed value red
   if (activity >= notificationTreshold) {
-    activityAll.style.color = 'rgb(235, 53, 53)'
+    activityElement.style.color = 'rgb(235, 53, 53)'
   }
   else {
     // If activity is below alert treshold, color it blue
-    activityAll.style.color = 'rgb(23, 23, 252)'
+    activityElement.style.color = 'rgb(23, 23, 252)'
   }
 }
 
@@ -56,7 +84,39 @@ const updateTimerDisplay = (time) => {
   minutes = minutes < 10 ? `0${minutes}` : minutes
   seconds = seconds < 10 ? `0${seconds}` : seconds
 
-  timerElement.innerText = `Next update in ${minutes}:${seconds}`
+  timerElement.innerText = `Seuraava päivitys: ${minutes}:${seconds}`
+}
+
+// Construct a table showing available observatories for the user to select
+const buildStationsTable = () => {
+  const buildCell = (row, cellIndex, stationIndex) => {
+    const station =  stations[stationIndex]
+    const cell = row.insertCell(cellIndex)
+    cell.innerText = station.name
+    cell.dataset.code = station.code
+
+    cell.addEventListener('click', (event) => {
+      window.electronAPI.setStation(station)
+      stationElement.innerText = station.name
+
+      // Switch back to main window
+      stationsDiv.style.display = 'none'
+      mainDiv.style.display = 'block'
+      settingsIcon.src = 'bars.png'
+    })
+  }
+
+  const rows = Math.ceil(stations.length / 2)
+
+  for (let i = 0; i < rows; i++) {
+    const row = stationsTable.insertRow(i)
+    buildCell(row, 0, i * 2)
+
+    // Avoid array out of bounds after the last cell
+    if (i * 2 + 1 < stations.length) {
+      buildCell(row, 1, i * 2 + 1)
+    }
+  }
 }
 
 
@@ -67,22 +127,27 @@ const updateTimerDisplay = (time) => {
 window.electronAPI.onSetUIConfiguration((event, config) => {
   notificationInterval = config.notificationInterval
   notificationTreshold = config.notificationTreshold
+  stationturha = config.station.name
+  stations = config.STATIONS
+
   intervalInput.value = notificationInterval
   tresholdInput.value = notificationTreshold
   trayInput.checked = config.minimizeToTray
   toggleInput.checked = config.notificationToggleChecked
-  
+  stationElement.innerText = config.station.name // config.station also includes station.code
+
+  buildStationsTable() // Initialize the station select page
 })
 
 // Receive updated activity value from main process
 window.electronAPI.onUpdateActivity((event, activity) => {
   activityElement.innerText = `${activity}`
-  updateActivityColor()
+  updateActivityStyle()
 })
 
 // Receive time to next activity update from main process and run the timer updating UI
 window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
-  updateTime = Date.now() + timeMs
+  nextUpdateTime = Date.now() + timeMs
 
   if (timer) {
     clearInterval(timer)
@@ -90,9 +155,9 @@ window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
   }
 
   updateTimerDisplay(timeMs)
-  
+
   timer = setInterval(() => {
-    updateTimerDisplay(updateTime - Date.now())
+    updateTimerDisplay(nextUpdateTime - Date.now())
   }, 1000);
 })
 
@@ -134,7 +199,7 @@ tresholdInput.addEventListener('change', (event) => {
   else {
     notificationTreshold = event.target.value.trim()
     window.electronAPI.setNotificationTreshold(notificationTreshold)
-    updateActivityColor()
+    updateActivityStyle()
   }
 })
 
@@ -193,16 +258,33 @@ trayInput.addEventListener('click', (event) => {
 
 // When user clicks the settings icon
 settingsIcon.addEventListener('click', (event) => {
-  // If in main window mode, switch to settings display
-  if (settingsDiv.style.display === 'none') {
+  // If in main window mode, switch to settings page
+  if (mainDiv.style.display === 'block') {
     mainDiv.style.display = 'none'
     settingsDiv.style.display = 'block'
     settingsIcon.src = 'arrow.png'
   }
-  // If in settings display, switch back to main window
+  // If in settings or station select page, switch back to main window
   else {
     settingsDiv.style.display = 'none'
+    stationsDiv.style.display = 'none'
     mainDiv.style.display = 'block'
     settingsIcon.src = 'bars.png'
   }
 })
+
+
+// ------------------ EVENT LISTENERS FOR station-icon -------------------
+
+
+// When user clicks the station icon
+stationIcon.addEventListener('click', (event) => {
+  mainDiv.style.display = 'none'
+  stationsDiv.style.display = 'block'
+  settingsIcon.src = 'arrow.png'
+})
+
+// For reference, not needed because apparently setting a style property to null resets it to what was defined via CSS stylesheet
+// window.addEventListener('DOMContentLoaded', () => {
+//   const activityStyle = activityElement.cloneNode(true).style
+// })

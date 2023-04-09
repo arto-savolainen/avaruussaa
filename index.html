@@ -2,135 +2,44 @@
 <html>
 
 <head>
-  <style>
-    body {
-      overflow-x: hidden;
-      -webkit-user-select: none;
-      user-select: none;
-      font-family: "Bahnschrift", sans-serif;
-      font-size: 15px;
-      color: #707070;
-      text-align: center;
-      /*background-image: url('bg.jpg');
-      background-size: cover; */
-    }
-
-    #menu-area {
-      margin: 0;
-      padding: 0;
-      text-align: left;
-      height: 30;
-      width: 200;
-      -webkit-app-region: drag;
-    }
-
-    #settings-icon {
-      -webkit-app-region: no-drag;
-      cursor: pointer;
-    }
-
-    .header {
-      margin-top: 10px;
-      margin: 0px;
-    }
-
-    #activity-all {
-      color: rgb(23, 23, 252);
-    }
-
-    #activity {
-      font-family: "Calibri", sans-serif;
-      font-size: 60px;
-      margin-bottom: 10px;
-      margin-top: 0px;
-      display: inline-block;
-    }
-
-    #activity-unit {
-      font-family: "Calibri", sans-serif;
-      text-align: none;
-    }
-
-    #timer {
-      font-size: 14px;
-    }
-
-    #options {
-      margin-top: 10px;
-    }
-
-    .option {
-      margin: 5px;
-    }
-
-    .input-box {
-      color: whitesmoke;
-      /*background-color: #404040; */
-      background-color: #202020;
-      text-align: center;
-    }
-
-    #link {
-      margin: 0px;
-      padding: 0px;
-      font-size: small;
-      position: absolute;
-      bottom: 10px;
-      width: 94%;
-    }
-
-    #link:not(:focus) {
-      color: red;
-    }
-
-    #notification-toggle {
-      margin-top: 15px;
-      margin-bottom: 10px;
-    }
-
-    #settings {
-      display: none;
-    }
-
-  </style>
-  <link rel="stylesheet" href="toggle.css">
+  <link href="style.css" rel="stylesheet">
+  <link href="toggle.css" rel="stylesheet">
 
   <meta charset="UTF-8">
   <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
   <title>Avaruussää</title>
 </head>
-<body>
+<body id="body">
   <!-- <div id="menu-area">&#8203;</div> -->
   <div id="menu-area"><img id="settings-icon" src="bars.png"></div>
 
-  <div id="main">
-    <h1 class="header">Activity</h1>
-    <div id="activity-all">
-      <h2 id="activity">Loading...</h2><span id="activity-unit"></span>
-    </div>
-    <div id="timer">Next update in 00:00</div>
+  <div id="main-page">
+    <h1 class="header">Aktiivisuus <span id="activity-unit">(nT/s)</span></h1>
+    <h2 id="activity">lataa...</h2>
+    <div id="timer">Seuraava päivitys: 00:00</div>
+    <div id="station"></div><span> <img id="station-icon" src="station-icon.png"> </span>
   </div>
   
-  <div id="settings">
-    <h1 class="header">Settings</h1>
+  <div id="settings-page">
+    <h1 class="header">Asetukset</h1>
     <div id="options">
       <div id="interval" class="option">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notification interval: <input id="interval-input" class="input-box" size="1"> hour(s)
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Notifikaatioväli: <input id="interval-input" class="input-box" size="1"> tuntia
       </div>
       <div id="treshold" class="option">
-        Notification treshold: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
+        Notifikaatiokynnys: <input id="treshold-input" name="treshold" class="input-box" size="1"> nT/s
       </div>
     </div>
     <div id="notification-toggle">
-      <span id="toggle-text">Notifications </span>
+      <span id="toggle-text">Notifikaatiot </span>
       <label class="switch">
         <input id="toggle-input" type="checkbox">
         <span class="slider round"></span>
       </label>
     </div>
     <div id="tray-toggle">
-      <span id="tray-toggle-text">Minimize to tray </span>
+      <span id="tray-toggle-text">Minimoi ilmaisinalueelle </span>
       <label class="switch">
         <input id="tray-input" type="checkbox">
         <span class="slider round"></span>
@@ -138,9 +47,15 @@
     </div>
   </div>
 
+  <div id="stations-page">
+    <h4 id="stations-header">Valitse havaintoasema</h4>
+    <table id="stations-table">
+    </table>
+  </div>
+
   <div id="link"><a href="https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa">Avaruussää @ Ilmatieteen laitos</a></div>
 
-  <script src="./rendererMain.js"></script>
+  <script src="./renderer.js"></script>
   </body>
   
   </html>

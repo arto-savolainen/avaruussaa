@@ -6,6 +6,44 @@ const WINDOW_WIDTH = 300
 const WINDOW_HEIGHT = 225
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
+const STATIONS = [
+  {
+    name: 'Kevo', code: 'KEV'
+  },
+  {
+    name: 'Kilpisjärvi', code: 'KIL'
+  },
+  {
+    name: 'Ivalo', code: 'IVA'
+  },
+  {
+    name: 'Muonio', code: 'MUO'
+  },
+  {
+    name: 'Sodankylä', code: 'SOD'
+  },
+  {
+    name: 'Pello', code: 'PEL'
+  },
+  {
+    name: 'Ranua', code: 'RAN'
+  },
+  {
+    name: 'Oulujärvi', code: 'OUJ'
+  },
+  {
+    name: 'Mekrijärvi', code: 'MEK'
+  },
+  {
+    name: 'Hankasalmi', code: 'HAN'
+  },
+  {
+    name: 'Nurmijärvi', code: 'NUR'
+  },
+  {
+    name: 'Tartto', code: 'TAR'
+  },
+]
 let mainWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
@@ -17,7 +55,7 @@ let intervalTimerStart
 let suppressNotification = false
 let notificationToggleChecked = true
 let firstAlert = true
-let station = { name: 'Nurmijärvi', code: 'NUR' }
+let currentStation = STATIONS[10] // Default station Nurmijärvi
 let tray = null
 
 const startIntervalTimer = (time) => {
@@ -45,8 +83,8 @@ const showNotification = (activity) => {
   firstAlert = false
 
   new Notification({
-    title: 'Northern lights likely',
-    body: `Magnetic activity at ${station.name}: ${activity} nT`,
+    title: 'Revontulet todennäköisiä',
+    body: `Magneettinen aktiivisuus @ ${currentStation.name}: ${activity} nT/s`,
   }).show()
 
   if (notificationInterval > 0) {
@@ -58,37 +96,49 @@ const showNotification = (activity) => {
 }
 
 const fetchData = async () => {
-  let activity
+  let response
 
-  for (let i = 0; i < 3; i++) {
-    // console.log('WTF!!!!!!!!!!!!!!!!!!!!! i:', i, 'activity:', activity)
-    activity = null
-    let response
-
-    try {
-      response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
-        // Query URL without using browser cache
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-      })
-    } catch (error) {
-      console.error(`Error: ${error.message}`)
-    }
-  
-    const responseBody = response.data // html+javascript response which includes the data we want
-    const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
-    let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
-    data = data[1].split('},', 1) // Split again where the data we want ends, discarding everything after it
-    data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
-    const time = new Date(data[data.length - 1][0]) //temp
-    activity = data[data.length - 1][1]
-    // console.dir(data, {'maxArrayLength': null})
-    console.log(data[data.length - 5], data[data.length - 4], data[data.length - 3], data[data.length - 2], data[data.length - 1])
-    console.log(time, activity, 'time now:', Date())
+  try {
+    response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
+      // Query URL without using browser cache
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    })
+  } catch (error) {
+    console.error(`Error: ${error.message}`)
   }
+
+  const responseBody = response.data // html+javascript response which includes the data we want
+  const splitString = `${currentStation.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
+  let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
+
+  // If data for our station was not found 
+  if (data.length < 2) {
+    mainWindow.webContents.send('update-activity', `Aseman ${currentStation.name} havainnot ovat tilapäisesti pois käytöstä.`)
+    return null
+  }
+
+  data = data[1].split('}', 1) // Split again where the data we want ends, discarding everything after it
+  data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
+  const time = new Date(data[data.length - 1][0]) //temp
+  let activity = data[data.length - 1][1]
+
+  // Sodankylän viimeinen mittaustulos on datassa välillä null, käytetään toiseksi viimeistä
+  if (!activity) {
+    activity = data[data.length - 2][1]
+
+    // Jos vieläkin kusee...
+    if (!activity) {
+      mainWindow.webContents.send('update-activity', `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
+    }
+  }
+
+  // console.dir(data, {'maxArrayLength': null})
+  console.log(data[data.length - 5], data[data.length - 4], data[data.length - 3], data[data.length - 2], data[data.length - 1])
+  console.log(time, activity, 'time now:', Date())
 
   return activity
 }
@@ -96,6 +146,11 @@ const fetchData = async () => {
 const updateData = async () => {
   console.log('update call received in updateData()!!!!!!!!!!')
   const activity = await fetchData()
+
+  // If data for our station was not found
+  if (!activity) {
+    return
+  }
 
   // Show desktop notification about activity
   if (activity >= notificationTreshold) {
@@ -110,7 +165,7 @@ const updateData = async () => {
 const initializeUI = (window) => {
   window.webContents.send('set-config',
     {
-      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray
+      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray, STATIONS, station: currentStation
     }
   )
 
@@ -134,7 +189,7 @@ const createMainWindow = () => {
       height: 30
     },
     webPreferences: {
-      preload: path.join(__dirname, 'preloadMain.js')
+      preload: path.join(__dirname, 'preload.js')
     }
   })
 
@@ -171,7 +226,7 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createMainWindow()
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -282,7 +337,7 @@ app.whenReady().then(() => {
 
   // Triggers when user clicks the notifications on / off toggle
   ipcMain.on('set-toggle', (event, checked) => {
-    console.log('in main setting checked to:', checked)
+    console.log('in main notifications checked to:', checked)
     notificationToggleChecked = checked
   })
 
@@ -290,6 +345,12 @@ app.whenReady().then(() => {
    ipcMain.on('set-tray-toggle', (event, checked) => {
     console.log('in main tray checked to:', checked)
     minimizeToTray = checked
+   })
+
+  // Triggers when user clicks a cell in the stations list table
+  ipcMain.on('set-station', (event, newStation) => {
+    currentStation = newStation
+    updateData()
   })
 
 
