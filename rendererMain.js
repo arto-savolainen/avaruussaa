@@ -5,11 +5,11 @@ const tresholdInput = document.getElementById('treshold-input')
 const timerElement = document.getElementById('timer')
 const toggleInput = document.getElementById('toggle-input')
 const settingsIcon = document.getElementById('settings-icon')
+const trayInput = document.getElementById('tray-input')
 
 const mainDiv = document.getElementById('main')
 const settingsDiv = document.getElementById('settings')
-
-toggleInput.checked = true
+settingsDiv.style.display = 'none'
 
 let notificationInterval
 let notificationTreshold
@@ -26,7 +26,7 @@ let updateTime
 // ------------------ UI UPDATE FUNCTIONS ------------------
 
 
-// Receive updated activity value from main process
+// Receive updated activity value from main process and display it in the main window
 const updateActivityColor = () => {
   const activity = activityElement.innerText
 
@@ -35,7 +35,7 @@ const updateActivityColor = () => {
     activityAll.style.color = 'rgb(235, 53, 53)'
   }
   else {
-    // Else color it blue
+    // If activity is below alert treshold, color it blue
     activityAll.style.color = 'rgb(23, 23, 252)'
   }
 }
@@ -69,6 +69,9 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
   notificationTreshold = config.notificationTreshold
   intervalInput.value = notificationInterval
   tresholdInput.value = notificationTreshold
+  trayInput.checked = config.minimizeToTray
+  toggleInput.checked = config.notificationToggleChecked
+  
 })
 
 // Receive updated activity value from main process
@@ -170,25 +173,36 @@ setSharedEventListeners(tresholdInput)
 // ------------------ EVENT LISTENERS FOR toggle-input -------------------
 
 
+// When user clicks the toggle to enable or disable notifications
 toggleInput.addEventListener('click', (event) => {
   window.electronAPI.setNotificationToggle(toggleInput.checked)
 })
 
 
+// ------------------ EVENT LISTENERS FOR tray-input -------------------
+
+
+// When user clicks the toggle to enable or disable minimize to tray
+trayInput.addEventListener('click', (event) => {
+  window.electronAPI.setTrayToggle(trayInput.checked)
+})
+
+
 // ------------------ EVENT LISTENERS FOR settings-icon -------------------
 
-  settingsIcon.addEventListener('click', (event) => {
-    // window.electronAPI.openSettings()
 
-    if (settingsDiv.style.display === 'none') {
-      mainDiv.style.display = 'none'
-      settingsDiv.style.display = 'block'
-      settingsIcon.src = 'arrow.png'
-    }
-    else {
-      settingsDiv.style.display = 'none'
-      mainDiv.style.display = 'block'
-      settingsIcon.src = 'gear.png'
-    }
-
-  })
+// When user clicks the settings icon
+settingsIcon.addEventListener('click', (event) => {
+  // If in main window mode, switch to settings display
+  if (settingsDiv.style.display === 'none') {
+    mainDiv.style.display = 'none'
+    settingsDiv.style.display = 'block'
+    settingsIcon.src = 'arrow.png'
+  }
+  // If in settings display, switch back to main window
+  else {
+    settingsDiv.style.display = 'none'
+    mainDiv.style.display = 'block'
+    settingsIcon.src = 'bars.png'
+  }
+})

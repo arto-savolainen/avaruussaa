@@ -3,15 +3,15 @@ const path = require('path')
 const axios = require('axios')
 
 const WINDOW_WIDTH = 300
-const WINDOW_HEIGHT = 250
+const WINDOW_HEIGHT = 225
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
 let mainWindow
-let settingsWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
 let notificationTreshold = 0.4 // Test value, let user change this
-let notificationInterval = 0 // Minimum time between notifications in hours
+let notificationInterval = 1 // Minimum time between notifications in hours
+let minimizeToTray = true
 let intervalTimer
 let intervalTimerStart
 let suppressNotification = false
@@ -106,11 +106,11 @@ const updateData = async () => {
   mainWindow.webContents.send('update-activity', activity)
 }
 
+// Send configuration parameters to UI, then get data and send that as well
 const initializeUI = (window) => {
-  console.log('in initializeUI, window:', window)
   window.webContents.send('set-config',
     {
-      notificationTreshold, notificationInterval
+      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray
     }
   )
 
@@ -118,7 +118,7 @@ const initializeUI = (window) => {
   updateData()
 }
 
-const createWindows = () => {
+const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
@@ -138,32 +138,9 @@ const createWindows = () => {
     }
   })
 
-  settingsWindow = new BrowserWindow({
-    parent: mainWindow,
-    modal: true,
-    show: false,
-    width: WINDOW_WIDTH,
-    height: WINDOW_HEIGHT,
-    resizable: false,
-    maximizable: false,
-    frame: false,
-    icon: 'icon.png',
-    backgroundColor: appBackgroundColor,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: appBackgroundColor,
-      symbolColor: appTextColor,
-      height: 30
-    },
-    webPreferences: {
-      preload: path.join(__dirname, 'preloadSettings.js')
-    }
-  })
-
   Menu.setApplicationMenu(null)
 
   mainWindow.loadFile('index.html')
-  settingsWindow.loadFile('settings.html')
 }
 
 const createTray = () => {
@@ -193,8 +170,8 @@ const createTray = () => {
 }
 
 app.whenReady().then(() => {
-  createWindows()
-  mainWindow.webContents.openDevTools()
+  createMainWindow()
+  // mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -250,14 +227,18 @@ app.whenReady().then(() => {
 
 
   mainWindow.on('minimize', (event) => {
-    event.preventDefault()
-    mainWindow.hide()
-    tray = createTray()
+    if (minimizeToTray) {
+      event.preventDefault()
+      mainWindow.hide()
+      tray = createTray()
+    }
   })
 
   mainWindow.on('restore', (event) => {
-    mainWindow.show()
-    tray.destroy()
+    if (tray) {
+      mainWindow.show()
+      tray.destroy()
+    } 
   })
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -265,37 +246,9 @@ app.whenReady().then(() => {
     shell.openExternal(url)
   })
 
-  settingsWindow.on('close', (event) => {
-    event.preventDefault()
-    settingsWindow.hide()
-    mainWindow.show()
-  })
-
-  mainWindow.on('move', (event) => {
-    settingsWindow.setPosition(event.sender.getBounds().x, event.sender.getBounds().y)
-  })
-
-  settingsWindow.on('move', (event) => {
-    mainWindow.setPosition(event.sender.getBounds().x, event.sender.getBounds().y)
-  })
-
 
   // ------------------ IPC RECEIVER FUNCTIONS FOR MAIN ------------------
 
-
-  // Triggers when user clicks the settings icon in the top left corner
-  ipcMain.on('open-settings', (event) => {
-    mainWindow.loadFile('settings.html')
-    // settingsWindow.show()
-    // mainWindow.hide()
-  })
-
-  ipcMain.on('close-settings', (event) => {
-    console.log('CLOSE SETTINGS MAIN')
-    mainWindow.loadFile('index.html')
-    // settingsWindow.show()
-    // mainWindow.hide()
-  })
 
   // Triggers when the user sets a new value for the minimum delay between notifications
   ipcMain.on('set-interval', (event, newInterval) => {
@@ -333,13 +286,19 @@ app.whenReady().then(() => {
     notificationToggleChecked = checked
   })
 
+   // Triggers when user clicks the minimize to tray on / off toggle
+   ipcMain.on('set-tray-toggle', (event, checked) => {
+    console.log('in main tray checked to:', checked)
+    minimizeToTray = checked
+  })
+
 
   // ------------------ MISC ------------------
 
 
   // macOS stuff
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindows()
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
   })
 })
 
