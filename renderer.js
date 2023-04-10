@@ -99,7 +99,7 @@ const buildStationsTable = () => {
       window.electronAPI.setStation(station)
       stationElement.innerText = station.name
 
-      // Switch back to main window
+      // Switch back to main page
       stationsDiv.style.display = 'none'
       mainDiv.style.display = 'block'
       settingsIcon.src = 'bars.png'
@@ -141,7 +141,7 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
 
 // Receive updated activity value from main process
 window.electronAPI.onUpdateActivity((event, activity) => {
-  activityElement.innerText = `${activity}`
+  activityElement.innerText = activity
   updateActivityStyle()
 })
 
