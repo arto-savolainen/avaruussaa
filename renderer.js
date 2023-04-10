@@ -16,7 +16,7 @@ mainDiv.style.display = 'block'
 settingsDiv.style.display = 'none' // For some reason these are null when set with CSS only, though they display correctly
 stationsDiv.style.display = 'none'
 //"What you have in your CSS stylesheets has little to do with the style property of your element.
-//The style property only includes inline styles."
+//The style property only includes inline styles." < selitys miksi style.* on null. getComputedStyle() toimii jos tarvii
 
 const bodyStyle = getComputedStyle(document.getElementById('body'))
 const fontColor = bodyStyle.color
@@ -41,6 +41,7 @@ let nextUpdateTime
 
 // Receive updated activity value from main process and display it in the main window
 const updateActivityStyle = () => {
+  activityElement.style.opacity = 1
   const activity = activityElement.innerText
 
   // If station data is not available, style the message differently
@@ -100,6 +101,7 @@ const buildStationsTable = () => {
       stationElement.innerText = station.name
 
       // Switch back to main page
+      activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
       stationsDiv.style.display = 'none'
       mainDiv.style.display = 'block'
       settingsIcon.src = 'bars.png'
