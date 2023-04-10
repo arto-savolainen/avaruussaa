@@ -105,6 +105,7 @@ const fetchData = async () => {
     })
   } catch (error) {
     console.error(`Error: ${error.message}`)
+    response.data = `Error: ${error.message}`
   }
 
   const responseBody = response.data // html+javascript response which includes the data we want
@@ -128,7 +129,7 @@ const fetchData = async () => {
     // Jos vieläkin kusee...
     if (!activity) {
       mainWindow.webContents.send('update-activity',
-      `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
+        `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
     }
   }
 
@@ -218,12 +219,12 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createMainWindow()
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
     initializeUI(mainWindow)
-    
+
     // ----------------------------------
     // Set timers for data fetching below
     // ----------------------------------
@@ -273,7 +274,7 @@ app.whenReady().then(() => {
     if (tray) {
       mainWindow.show()
       tray.destroy()
-    } 
+    }
   })
 
   // When user clicks a link to an external url open it in the default browser
@@ -318,10 +319,10 @@ app.whenReady().then(() => {
     notificationToggleChecked = checked
   })
 
-   // Triggers when user clicks the minimize to tray on / off toggle
-   ipcMain.on('set-tray-toggle', (event, checked) => {
+  // Triggers when user clicks the minimize to tray on / off toggle
+  ipcMain.on('set-tray-toggle', (event, checked) => {
     minimizeToTray = checked
-   })
+  })
 
   // Triggers when user clicks a cell in the stations list table
   ipcMain.on('set-station', (event, newStation) => {

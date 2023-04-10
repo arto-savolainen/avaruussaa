@@ -13,6 +13,7 @@ cypress/fixtures/example.json
 cypress/support/commands.js
 
 # production
+/out
 /build
 
 # misc

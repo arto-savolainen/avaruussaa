@@ -19,8 +19,8 @@ stationsDiv.style.display = 'none'
 // The style property only includes inline styles." < selitys miksi style.* on null. getComputedStyle() toimii jos tarvii
 
 const bodyStyle = getComputedStyle(document.getElementById('body'))
-const fontColor = bodyStyle.color
-const fontSize = bodyStyle.fontSize
+const defaultFontColor = bodyStyle.color
+const defaultFontSize = bodyStyle.fontSize
 
 let notificationInterval
 let notificationTreshold
@@ -39,8 +39,8 @@ const updateActivityStyle = () => {
 
   // If station data is not available, style the message differently
   if (isNaN(activity)) {
-    activityElement.style.color = fontColor // Use default font color when displaying 'data not found' message
-    activityElement.style.fontSize = fontSize // And default font size
+    activityElement.style.color = defaultFontColor // Use default font color when displaying 'data not found' message
+    activityElement.style.fontSize = defaultFontSize // And default font size
     activityElement.style.marginTop = '20px'
     activityElement.style.marginBottom = '20px'
     return
@@ -88,17 +88,6 @@ const buildStationsTable = () => {
     const cell = row.insertCell(cellIndex)
     cell.innerText = station.name
     cell.dataset.code = station.code
-
-    cell.addEventListener('click', (event) => {
-      window.electronAPI.setStation(station)
-      stationElement.innerText = station.name
-
-      // Switch back to main page
-      stationsDiv.style.display = 'none'
-      mainDiv.style.display = 'block'
-      settingsIcon.src = 'bars.png'
-      activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
-    })
   }
 
   const rows = Math.ceil(stations.length / 2)
@@ -134,8 +123,8 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
 })
 
 // Receive updated activity value from main process
-window.electronAPI.onUpdateActivity((event, activity) => {
-  activityElement.innerText = activity
+window.electronAPI.onUpdateActivity((event, newActivity) => {
+  activityElement.innerText = newActivity
   updateActivityStyle()
 })
 
@@ -271,9 +260,32 @@ settingsIcon.addEventListener('click', (event) => {
 // ------------------ EVENT LISTENERS FOR station-icon -------------------
 
 
-// When user clicks the station icon
+// When user clicks the station icon, hide main page and show the stations page
 stationIcon.addEventListener('click', (event) => {
   mainDiv.style.display = 'none'
   stationsDiv.style.display = 'block'
   settingsIcon.src = 'arrow.png'
+})
+
+
+// ------------------ EVENT LISTENERS FOR stations-table -------------------
+
+
+// When user clicks a cell in the stations table to select an observatory it's handled here
+stationsTable.addEventListener('click', (event) => {
+  const cell = event.target.closest('td')
+
+  // Did not click on a cell but somewhere else in the table
+  if (!cell) {
+    return 
+  }
+
+  window.electronAPI.setStation({ name: cell.innerText, code: cell.dataset.code })
+  stationElement.innerText = cell.innerText
+
+  // Switch back to main page
+  stationsDiv.style.display = 'none'
+  mainDiv.style.display = 'block'
+  settingsIcon.src = 'bars.png'
+  activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
 })
