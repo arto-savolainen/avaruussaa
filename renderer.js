@@ -15,8 +15,8 @@ const stationsDiv = document.getElementById('stations-page')
 mainDiv.style.display = 'block'
 settingsDiv.style.display = 'none' // For some reason these are null when set with CSS only, though they display correctly
 stationsDiv.style.display = 'none'
-//"What you have in your CSS stylesheets has little to do with the style property of your element.
-//The style property only includes inline styles." < selitys miksi style.* on null. getComputedStyle() toimii jos tarvii
+// "What you have in your CSS stylesheets has little to do with the style property of your element.
+// The style property only includes inline styles." < selitys miksi style.* on null. getComputedStyle() toimii jos tarvii
 
 const bodyStyle = getComputedStyle(document.getElementById('body'))
 const fontColor = bodyStyle.color
@@ -24,16 +24,9 @@ const fontSize = bodyStyle.fontSize
 
 let notificationInterval
 let notificationTreshold
-let stationturha
 let stations
 let timer
 let nextUpdateTime
-
-// window.queryLocalFonts().then((x) => {
-//   console.log('fonts', x)
-// }).catch((x) => {
-//   console.log('error')
-// })
 
 
 // ------------------ UI UPDATE FUNCTIONS ------------------
@@ -101,10 +94,10 @@ const buildStationsTable = () => {
       stationElement.innerText = station.name
 
       // Switch back to main page
-      activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
       stationsDiv.style.display = 'none'
       mainDiv.style.display = 'block'
       settingsIcon.src = 'bars.png'
+      activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
     })
   }
 
@@ -129,14 +122,13 @@ const buildStationsTable = () => {
 window.electronAPI.onSetUIConfiguration((event, config) => {
   notificationInterval = config.notificationInterval
   notificationTreshold = config.notificationTreshold
-  stationturha = config.station.name
   stations = config.STATIONS
 
   intervalInput.value = notificationInterval
   tresholdInput.value = notificationTreshold
   trayInput.checked = config.minimizeToTray
   toggleInput.checked = config.notificationToggleChecked
-  stationElement.innerText = config.station.name // config.station also includes station.code
+  stationElement.innerText = config.currentStation.name // config.station also includes station.code
 
   buildStationsTable() // Initialize the station select page
 })
@@ -260,13 +252,13 @@ trayInput.addEventListener('click', (event) => {
 
 // When user clicks the settings icon
 settingsIcon.addEventListener('click', (event) => {
-  // If in main window mode, switch to settings page
+  // If in main page, switch to settings page
   if (mainDiv.style.display === 'block') {
     mainDiv.style.display = 'none'
     settingsDiv.style.display = 'block'
     settingsIcon.src = 'arrow.png'
   }
-  // If in settings or station select page, switch back to main window
+  // If in settings or stations page, switch back to main page
   else {
     settingsDiv.style.display = 'none'
     stationsDiv.style.display = 'none'
@@ -285,8 +277,3 @@ stationIcon.addEventListener('click', (event) => {
   stationsDiv.style.display = 'block'
   settingsIcon.src = 'arrow.png'
 })
-
-// For reference, not needed because apparently setting a style property to null resets it to what was defined via CSS stylesheet
-// window.addEventListener('DOMContentLoaded', () => {
-//   const activityStyle = activityElement.cloneNode(true).style
-// })

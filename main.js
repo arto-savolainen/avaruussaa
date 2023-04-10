@@ -47,7 +47,7 @@ const STATIONS = [
 let mainWindow
 let appBackgroundColor = '#151515'
 let appTextColor = '#404040'
-let notificationTreshold = 0.4 // Test value, let user change this
+let notificationTreshold = 0.4 // Default value, let user change this. In reality likelyhood depends on observatory location
 let notificationInterval = 1 // Minimum time between notifications in hours
 let minimizeToTray = true
 let intervalTimer
@@ -60,12 +60,10 @@ let tray = null
 
 const startIntervalTimer = (time) => {
   if (intervalTimer) {
-    console.log('clearing intervalTimer with clearTimeout()')
     clearTimeout(intervalTimer)
   }
 
   intervalTimer = setTimeout(() => {
-    console.log('executing intervalTimer setTimeout: suppression end')
     suppressNotification = false
     intervalTimer = null
     intervalTimerStart = null
@@ -76,7 +74,6 @@ const showNotification = (activity) => {
   // Don't show notification if notificationInterval time has not elapsed since the last one, and it's not the first notification.
   // Or if user has toggled notifications off.
   if ((suppressNotification && !firstAlert) || !notificationToggleChecked) {
-    console.log('suppressing notification')
     return
   }
 
@@ -89,7 +86,6 @@ const showNotification = (activity) => {
 
   if (notificationInterval > 0) {
     suppressNotification = true
-    console.log('setting notification timeout,', notificationInterval * 60 * 60, 'seconds')
     intervalTimerStart = new Date()
     startIntervalTimer(notificationInterval * HOURS_TO_MS)
   }
@@ -123,7 +119,6 @@ const fetchData = async () => {
 
   data = data[1].split('}', 1) // Split again where the data we want ends, discarding everything after it
   data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
-  const time = new Date(data[data.length - 1][0]) //temp
   let activity = data[data.length - 1][1]
 
   // Sodankylän viimeinen mittaustulos on datassa välillä null, käytetään toiseksi viimeistä
@@ -132,19 +127,15 @@ const fetchData = async () => {
 
     // Jos vieläkin kusee...
     if (!activity) {
-      mainWindow.webContents.send('update-activity', `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
+      mainWindow.webContents.send('update-activity',
+      `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
     }
   }
-
-  // console.dir(data, {'maxArrayLength': null})
-  console.log(data[data.length - 5], data[data.length - 4], data[data.length - 3], data[data.length - 2], data[data.length - 1])
-  console.log(time, activity, 'time now:', Date())
 
   return activity
 }
 
 const updateData = async () => {
-  console.log('update call received in updateData()!!!!!!!!!!')
   const activity = await fetchData()
 
   // If data for our station was not found
@@ -165,7 +156,7 @@ const updateData = async () => {
 const initializeUI = (window) => {
   window.webContents.send('set-config',
     {
-      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray, STATIONS, station: currentStation
+      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray, STATIONS, currentStation
     }
   )
 
@@ -180,7 +171,7 @@ const createMainWindow = () => {
     resizable: false,
     maximizable: false,
     frame: false,
-    icon: 'icon.png',
+    icon: 'app-icon.png',
     backgroundColor: appBackgroundColor,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
@@ -199,8 +190,9 @@ const createMainWindow = () => {
 }
 
 const createTray = () => {
-  let appIcon = new Tray(path.join(__dirname, "icon.png"))
+  let tray = new Tray(path.join(__dirname, "app-icon.png"))
 
+  // Menu when right-clicking tray icon
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show', click: () => {
@@ -214,23 +206,22 @@ const createTray = () => {
     }
   ])
 
-  appIcon.on('double-click', (event) => {
+  tray.on('double-click', (event) => {
     mainWindow.show()
   })
 
-  appIcon.setToolTip('Avaruussää')
-  appIcon.setContextMenu(contextMenu)
+  tray.setToolTip('Avaruussää')
+  tray.setContextMenu(contextMenu)
 
-  return appIcon
+  return tray
 }
 
 app.whenReady().then(() => {
   createMainWindow()
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
-    console.log('täällä ollaan mainWindow.webContents.once, ääkköset kusee electron konsolissa')
     initializeUI(mainWindow)
     
     // ----------------------------------
@@ -245,42 +236,31 @@ app.whenReady().then(() => {
     let offsetMinutes = 10 - (time.getMinutes() % 10 === 0 ? 10 : time.getMinutes() % 10)
     // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
     const offsetSeconds = 60 - time.getSeconds()
-    console.log('time:', time, 'minutes:', time.getMinutes(), 'offset:', offsetMinutes)
     // Time in milliseconds until the clock is 11 minutes past, 21 past, etc.
     const timeMs = (offsetMinutes * 60 + offsetSeconds) * 1000
 
     // Set timer to trigger data fetching at the right time.
-    console.log('starting timer of', timeMs / 1000, 'seconds. Time now:', Date())
     setTimeout(() => {
       // Here time is about 1 minute after assumed site update. Now we set a timer that will run through the lifetime of the program
       // and call the data fetch function every 10 minutes.
       setInterval(() => {
-        console.log('interval executing')
-        var t = new Date()
-        console.log(`current time before data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
         updateData()
-        t = new Date()
-        console.log(`current time after data fetch: ${t.getHours()}:${t.getMinutes()}:${t.getSeconds()}:${t.getMilliseconds()}`)
-        console.log('sending timer now at:', Date(), 'TEN_MINUTES_MS:', TEN_MINUTES_MS)
         mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
       }, TEN_MINUTES_MS);
 
-      // Datafetch at the assumed site update time, after this fetching will happen at 10 minute intervals
+      // Datafetch at the calculated time, after this fetching will happen at 10 minute intervals
       updateData()
-      console.log('sending timer now at:', Date(), 'TEN_MINUTES_MS:', TEN_MINUTES_MS)
       mainWindow.webContents.send('set-next-update-timer', TEN_MINUTES_MS)
-      console.log('end of timer, data sent?')
     }, timeMs)
 
     // Send update timer info to UI
-    console.log('sending timer now at:', Date(), 'timeMs:', timeMs)
     mainWindow.webContents.send('set-next-update-timer', timeMs)
   })
 
 
   // ------------------ USER ACTION HANDLERS ------------------
 
-
+  // Tray stuff
   mainWindow.on('minimize', (event) => {
     if (minimizeToTray) {
       event.preventDefault()
@@ -296,6 +276,7 @@ app.whenReady().then(() => {
     } 
   })
 
+  // When user clicks a link to an external url open it in the default browser
   mainWindow.webContents.on('will-navigate', (event, url) => {
     event.preventDefault()
     shell.openExternal(url)
@@ -310,7 +291,6 @@ app.whenReady().then(() => {
     if (intervalTimerStart) {
       // With this the notification suppression timer behaves as if the old timer was started with the new interval
       const timeLeft = (intervalTimerStart.getTime() + newInterval * HOURS_TO_MS) - Date.now()
-      console.log('timeLeft in minutes:', timeLeft / 1000 / 60)
 
       // If there's suppression time left with the new interval
       if (timeLeft > 0) {
@@ -325,25 +305,21 @@ app.whenReady().then(() => {
       }
     }
 
-    console.log('in main setting interval to:', newInterval)
     notificationInterval = newInterval
   })
 
   // Triggers when user sets a new value for the notification treshold
   ipcMain.on('set-treshold', (event, newTreshold) => {
-    console.log('in main setting treshold to:', newTreshold)
     notificationTreshold = newTreshold
   })
 
   // Triggers when user clicks the notifications on / off toggle
   ipcMain.on('set-toggle', (event, checked) => {
-    console.log('in main notifications checked to:', checked)
     notificationToggleChecked = checked
   })
 
    // Triggers when user clicks the minimize to tray on / off toggle
    ipcMain.on('set-tray-toggle', (event, checked) => {
-    console.log('in main tray checked to:', checked)
     minimizeToTray = checked
    })
 
