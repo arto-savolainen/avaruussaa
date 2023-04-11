@@ -26,7 +26,11 @@ let notificationInterval
 let notificationTreshold
 let stations
 let timer
-let nextUpdateTime
+let updateTime
+
+const getStationActivity = (stationName) => {
+  return stations.find(x => x.name === stationName).activity
+}
 
 
 // ------------------ UI UPDATE FUNCTIONS ------------------
@@ -34,7 +38,6 @@ let nextUpdateTime
 
 // Receive updated activity value from main process and display it in the main window
 const updateActivityStyle = () => {
-  activityElement.style.opacity = 1
   const activity = activityElement.innerText
 
   // If station data is not available, style the message differently
@@ -117,20 +120,29 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
   tresholdInput.value = notificationTreshold
   trayInput.checked = config.minimizeToTray
   toggleInput.checked = config.notificationToggleChecked
-  stationElement.innerText = config.currentStation.name // config.station also includes station.code
+  stationElement.innerText = config.currentStation.name
 
-  buildStationsTable() // Initialize the station select page
+  // Initialize the station select page
+  buildStationsTable()
 })
 
+// Display error if the data fetching request in main process has failed
+window.electronAPI.onShowError((event, error) => {
+  activityElement.innerText = error
+  updateActivityStyle()
+})
+
+
 // Receive updated activity value from main process
-window.electronAPI.onUpdateActivity((event, newActivity) => {
-  activityElement.innerText = newActivity
+window.electronAPI.onUpdateActivity((event, newData) => {
+  stations = newData
+  activityElement.innerText = getStationActivity(stationElement.innerText)
   updateActivityStyle()
 })
 
 // Receive time to next activity update from main process and run the timer updating UI
-window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
-  nextUpdateTime = Date.now() + timeMs
+window.electronAPI.onSetUpdateTimer((event, timeMs) => {
+  updateTime = Date.now() + timeMs
 
   if (timer) {
     clearInterval(timer)
@@ -140,7 +152,7 @@ window.electronAPI.onSetNextUpdateTimer((event, timeMs) => {
   updateTimerDisplay(timeMs)
 
   timer = setInterval(() => {
-    updateTimerDisplay(nextUpdateTime - Date.now())
+    updateTimerDisplay(updateTime - Date.now())
   }, 1000);
 })
 
@@ -280,12 +292,12 @@ stationsTable.addEventListener('click', (event) => {
     return 
   }
 
-  window.electronAPI.setStation({ name: cell.innerText, code: cell.dataset.code })
+  window.electronAPI.setStation(cell.dataset.code)
   stationElement.innerText = cell.innerText
+  activityElement.innerText = getStationActivity(cell.innerText)
 
   // Switch back to main page
   stationsDiv.style.display = 'none'
   mainDiv.style.display = 'block'
   settingsIcon.src = 'bars.png'
-  activityElement.style.opacity = 0 // Start fade out transition for activity < doesn't actually fade out, dont know why
 })

@@ -57,6 +57,7 @@ let notificationToggleChecked = true
 let firstAlert = true
 let currentStation = STATIONS[10] // Default station Nurmijärvi
 let tray = null
+let stationsCache
 
 const startIntervalTimer = (time) => {
   if (intervalTimer) {
@@ -94,9 +95,9 @@ const showNotification = (activity) => {
 const fetchData = async () => {
   let response
 
+  // Get data for all stations
   try {
     response = await axios.get('https://www.ilmatieteenlaitos.fi/revontulet-ja-avaruussaa', {
-      // Query URL without using browser cache
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
@@ -105,52 +106,58 @@ const fetchData = async () => {
     })
   } catch (error) {
     console.error(`Error: ${error.message}`)
-    response.data = `Error: ${error.message}`
-  }
-
-  const responseBody = response.data // html+javascript response which includes the data we want
-  const splitString = `${currentStation.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
-  let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
-
-  // If data for our station was not found 
-  if (data.length < 2) {
-    mainWindow.webContents.send('update-activity', `Aseman ${currentStation.name} havainnot ovat tilapäisesti pois käytöstä.`)
-    return null
-  }
-
-  data = data[1].split('}', 1) // Split again where the data we want ends, discarding everything after it
-  data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
-  let activity = data[data.length - 1][1]
-
-  // Sodankylän viimeinen mittaustulos on datassa välillä null, käytetään toiseksi viimeistä
-  if (!activity) {
-    activity = data[data.length - 2][1]
-
-    // Jos vieläkin kusee...
-    if (!activity) {
-      mainWindow.webContents.send('update-activity',
-        `Aseman ${currentStation.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`)
-    }
-  }
-
-  return activity
-}
-
-const updateData = async () => {
-  const activity = await fetchData()
-
-  // If data for our station was not found
-  if (!activity) {
+    mainWindow.webContents.send('show-error', `Error: ${error.message}`)
     return
   }
 
+  // Find activity for each station and add station data to cache
+  for (const station of STATIONS) {
+    const responseBody = response.data // html+javascript response which includes the data we want
+    const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
+    let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
+    let activity
+
+    // If data for our station was not found 
+    if (data.length < 2) {
+      activity = `Aseman ${station.name} havainnot ovat tilapäisesti pois käytöstä.`
+    }
+
+    data = data[1].split('}', 1) // Split again where the data we want ends, discarding everything after it
+    data = JSON.parse(data[0]) // Transform string to a javascript object. Now we have our data in an array.
+    activity = data[data.length - 1][1]
+
+    // Sodankylän viimeinen mittaustulos on datassa välillä null, käytetään toiseksi viimeistä
+    if (!activity) {
+      activity = data[data.length - 2][1]
+
+      // Jos vieläkin kusee...
+      if (!activity) {
+        activity = `Aseman ${station.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`
+      }
+    }
+
+    stationsCache.push({ name: station.name, code: station.code, activity })
+
+    if (station.code === currentStation.code) {
+      currentStation.activity = activity
+    }
+  }
+}
+
+const updateData = async () => {
+  // Clear old data
+  clearCache()
+
+  // Populate cache
+  await fetchData()
+
   // Show desktop notification about activity
-  if (activity >= notificationTreshold) {
-    showNotification(activity)
+  if (!isNaN(currentStation.activity) && currentStation.activity >= notificationTreshold) {
+    showNotification(currentStation.activity)
   }
 
-  // Send updated activity value to UI
-  mainWindow.webContents.send('update-activity', activity)
+  // Send updated data to renderer
+  mainWindow.webContents.send('update-activity', stationsCache)
 }
 
 // Send configuration parameters to UI, then get data and send that as well
@@ -163,6 +170,10 @@ const initializeUI = (window) => {
 
   // Get activity data, show notification if needed and send data to the renderer
   updateData()
+}
+
+const clearCache = () => {
+  stationsCache = []
 }
 
 const createMainWindow = () => {
@@ -219,7 +230,7 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createMainWindow()
-  mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools()
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
@@ -325,9 +336,8 @@ app.whenReady().then(() => {
   })
 
   // Triggers when user clicks a cell in the stations list table
-  ipcMain.on('set-station', (event, newStation) => {
-    currentStation = newStation
-    updateData()
+  ipcMain.on('set-station', (event, newStationCode) => {
+    currentStation = stationsCache.find(x => x.code === newStationCode)
   })
 
 

@@ -52,7 +52,6 @@ body {
   margin-bottom: 10px;
   margin-top: 0px;
   display: inline-block;
-  transition: opacity 350ms ease-in-out;
 }
 
 #activity-unit {
