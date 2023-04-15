@@ -4,6 +4,8 @@ const axios = require('axios')
 
 const WINDOW_WIDTH = 300
 const WINDOW_HEIGHT = 225
+const APP_BACKGROUND_COLOR = '#151515'
+const APP_TEXT_COLOR = '#404040'
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
 const STATIONS = [
@@ -45,8 +47,6 @@ const STATIONS = [
   },
 ]
 let mainWindow
-let appBackgroundColor = '#151515'
-let appTextColor = '#404040'
 let notificationTreshold = 0.4 // Default value, let user change this. In reality likelyhood depends on observatory location
 let notificationInterval = 1 // Minimum time between notifications in hours
 let minimizeToTray = true
@@ -132,7 +132,7 @@ const fetchData = async () => {
 
       // Jos vieläkin kusee...
       if (!activity) {
-        activity = `Aseman ${station.name} uusin data ei tilapäisesti saatavilla, yritä myöhemmin uudelleen.`
+        activity = `Aseman ${station.name} data ei tilapäisesti ole saatavilla, yritä myöhemmin uudelleen.`
       }
     }
 
@@ -184,11 +184,11 @@ const createMainWindow = () => {
     maximizable: false,
     frame: false,
     icon: 'app-icon.png',
-    backgroundColor: appBackgroundColor,
+    backgroundColor: APP_BACKGROUND_COLOR,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: appBackgroundColor,
-      symbolColor: appTextColor,
+      color: APP_BACKGROUND_COLOR,
+      symbolColor: APP_TEXT_COLOR,
       height: 30
     },
     webPreferences: {

@@ -40,9 +40,9 @@ const getStationActivity = (stationName) => {
 const updateActivityStyle = () => {
   const activity = activityElement.innerText
 
-  // If station data is not available, style the message differently
+  // If displaying an error message (like station data not available), style the text differently
   if (isNaN(activity)) {
-    activityElement.style.color = defaultFontColor // Use default font color when displaying 'data not found' message
+    activityElement.style.color = defaultFontColor // Use default font color when displaying a 'data not found' message
     activityElement.style.fontSize = defaultFontSize // And default font size
     activityElement.style.marginTop = '20px'
     activityElement.style.marginBottom = '20px'
@@ -63,6 +63,17 @@ const updateActivityStyle = () => {
     // If activity is below alert treshold, color it blue
     activityElement.style.color = 'rgb(23, 23, 252)'
   }
+}
+
+const updateActivityElement = (errorMsg) => {
+  if (errorMsg) {
+    activityElement.innerText = errorMsg
+  }
+  else {
+    activityElement.innerText = getStationActivity(stationElement.innerText)
+  }
+
+  updateActivityStyle()
 }
 
 // Update the display showing to the user how much time left until the next time activity is updated
@@ -128,16 +139,14 @@ window.electronAPI.onSetUIConfiguration((event, config) => {
 
 // Display error if the data fetching request in main process has failed
 window.electronAPI.onShowError((event, error) => {
-  activityElement.innerText = error
-  updateActivityStyle()
+  updateActivityElement(error)
 })
 
 
 // Receive updated activity value from main process
 window.electronAPI.onUpdateActivity((event, newData) => {
   stations = newData
-  activityElement.innerText = getStationActivity(stationElement.innerText)
-  updateActivityStyle()
+  updateActivityElement()
 })
 
 // Receive time to next activity update from main process and run the timer updating UI
@@ -292,9 +301,9 @@ stationsTable.addEventListener('click', (event) => {
     return 
   }
 
-  window.electronAPI.setStation(cell.dataset.code)
-  stationElement.innerText = cell.innerText
-  activityElement.innerText = getStationActivity(cell.innerText)
+  window.electronAPI.setStation(cell.dataset.code) // Inform main process of station change
+  stationElement.innerText = cell.innerText // Set station in UI
+  updateActivityElement() // Show activity for the new station
 
   // Switch back to main page
   stationsDiv.style.display = 'none'

@@ -1,7 +1,7 @@
 {
   "name": "avaruussaa",
   "version": "1.0.0",
-  "description": "temp",
+  "description": "Työpöytäsovellus magneettisen aktiivisuuden monitorointiin Suomen yllä.",
   "main": "main.js",
   "scripts": {
     "start": "electron . --dev --use-angle=swiftshader",
