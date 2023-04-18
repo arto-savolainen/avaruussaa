@@ -12,11 +12,11 @@ const stationsTable = document.getElementById('stations-table')
 const mainDiv = document.getElementById('main-page')
 const settingsDiv = document.getElementById('settings-page')
 const stationsDiv = document.getElementById('stations-page')
-mainDiv.style.display = 'block'
-settingsDiv.style.display = 'none' // For some reason these are null when set with CSS only, though they display correctly
+
+// Initialize page visibility
+mainDiv.style.display = 'block' 
+settingsDiv.style.display = 'none'
 stationsDiv.style.display = 'none'
-// "What you have in your CSS stylesheets has little to do with the style property of your element.
-// The style property only includes inline styles." < selitys miksi style.* on null. getComputedStyle() toimii jos tarvii
 
 const bodyStyle = getComputedStyle(document.getElementById('body'))
 const defaultFontColor = bodyStyle.color

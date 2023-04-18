@@ -110,16 +110,19 @@ const fetchData = async () => {
     return
   }
 
+  const responseBody = response.data // html+javascript response which includes the data we want
+
   // Find activity for each station and add station data to cache
   for (const station of STATIONS) {
-    const responseBody = response.data // html+javascript response which includes the data we want
     const splitString = `${station.code}\\\":{\\\"dataSeries\\\":` // Data starts after this string
     let data = responseBody.split(splitString) // Split response string where the data for our monitoring station begins
     let activity
 
-    // If data for our station was not found 
+    // If data for current station was not found 
     if (data.length < 2) {
       activity = `Aseman ${station.name} havainnot ovat tilapäisesti pois käytöstä.`
+      stationsCache.push({ name: station.name, code: station.code, activity })
+      continue
     }
 
     data = data[1].split('}', 1) // Split again where the data we want ends, discarding everything after it
@@ -145,10 +148,10 @@ const fetchData = async () => {
 }
 
 const updateData = async () => {
-  // Clear old data
+  // Clear old stations data
   clearCache()
 
-  // Populate cache
+  // Populate cache with updated stations data
   await fetchData()
 
   // Show desktop notification about activity
