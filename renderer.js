@@ -1,6 +1,6 @@
 const activityElement = document.getElementById('activity')
 const intervalInput = document.getElementById('interval-input')
-const tresholdInput = document.getElementById('treshold-input')
+const thresholdInput = document.getElementById('threshold-input')
 const timerElement = document.getElementById('timer')
 const toggleInput = document.getElementById('toggle-input')
 const settingsIcon = document.getElementById('settings-icon')
@@ -23,7 +23,7 @@ const defaultFontColor = bodyStyle.color
 const defaultFontSize = bodyStyle.fontSize
 
 let notificationInterval
-let notificationTreshold
+let notificationThreshold
 let stations
 let timer
 let updateTime
@@ -55,12 +55,12 @@ const updateActivityStyle = () => {
   activityElement.style.marginTop = null
   activityElement.style.marginBottom = null
 
-  // If activity is at or above treshold, color the displayed value red
-  if (activity >= notificationTreshold) {
+  // If activity is at or above threshold, color the displayed value red
+  if (activity >= notificationThreshold) {
     activityElement.style.color = 'rgb(235, 53, 53)'
   }
   else {
-    // If activity is below alert treshold, color it blue
+    // If activity is below alert threshold, color it blue
     activityElement.style.color = 'rgb(23, 23, 252)'
   }
 }
@@ -124,11 +124,11 @@ const buildStationsTable = () => {
 // Receive UI configuration data from main process and initialize values
 window.electronAPI.onSetUIConfiguration((event, config) => {
   notificationInterval = config.notificationInterval
-  notificationTreshold = config.notificationTreshold
+  notificationThreshold = config.notificationThreshold
   stations = config.STATIONS
 
   intervalInput.value = notificationInterval
-  tresholdInput.value = notificationTreshold
+  thresholdInput.value = notificationThreshold
   trayInput.checked = config.minimizeToTray
   toggleInput.checked = config.notificationToggleChecked
   stationElement.innerText = config.currentStation.name
@@ -162,7 +162,7 @@ window.electronAPI.onSetUpdateTimer((event, timeMs) => {
 
   timer = setInterval(() => {
     updateTimerDisplay(updateTime - Date.now())
-  }, 1000);
+  }, 1000)
 })
 
 
@@ -186,29 +186,29 @@ intervalInput.addEventListener('change', (event) => {
 })
 
 
-// ------------------ EVENT LISTENERS FOR treshold-input -------------------
+// ------------------ EVENT LISTENERS FOR threshold-input -------------------
 
 
 // Save last valid input when user clicks outside of the interval input element
-tresholdInput.addEventListener('focusout', (event) => {
-  tresholdInput.value = notificationTreshold
+thresholdInput.addEventListener('focusout', (event) => {
+  thresholdInput.value = notificationThreshold
 })
 
 
 // Validate that user input for the interval input element is a positive number
-tresholdInput.addEventListener('change', (event) => {
+thresholdInput.addEventListener('change', (event) => {
   if (isNaN(event.target.value) || isNaN(parseFloat(event.target.value)) || event.target.value < 0) {
-    tresholdInput.value = notificationTreshold
+    thresholdInput.value = notificationThreshold
   }
   else {
-    notificationTreshold = event.target.value.trim()
-    window.electronAPI.setNotificationTreshold(notificationTreshold)
+    notificationThreshold = event.target.value.trim()
+    window.electronAPI.setNotificationThreshold(notificationThreshold)
     updateActivityStyle()
   }
 })
 
 
-// -------- SHARED EVENT LISTENERS FOR interval-input AND treshold-input --------
+// -------- SHARED EVENT LISTENERS FOR interval-input AND threshold-input --------
 
 
 const setSharedEventListeners = (element) => {
@@ -236,7 +236,7 @@ const setSharedEventListeners = (element) => {
 }
 
 setSharedEventListeners(intervalInput)
-setSharedEventListeners(tresholdInput)
+setSharedEventListeners(thresholdInput)
 
 
 // ------------------ EVENT LISTENERS FOR toggle-input -------------------

@@ -5,7 +5,7 @@ const axios = require('axios')
 const WINDOW_WIDTH = 300
 const WINDOW_HEIGHT = 225
 const APP_BACKGROUND_COLOR = '#151515'
-const APP_TEXT_COLOR = '#404040'
+const APP_TEXT_COLOR = '#404040' // Color of window controls (minimize and close buttons)
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const HOURS_TO_MS = 60 * 60 * 1000
 const STATIONS = [
@@ -47,7 +47,7 @@ const STATIONS = [
   },
 ]
 let mainWindow
-let notificationTreshold = 0.4 // Default value, let user change this. In reality likelyhood depends on observatory location
+let notificationThreshold = 0.4 // Default value, let user change this. In reality likelyhood depends on observatory location
 let notificationInterval = 1 // Minimum time between notifications in hours
 let minimizeToTray = true
 let intervalTimer
@@ -147,6 +147,10 @@ const fetchData = async () => {
   }
 }
 
+const clearCache = () => {
+  stationsCache = []
+}
+
 const updateData = async () => {
   // Clear old stations data
   clearCache()
@@ -155,7 +159,7 @@ const updateData = async () => {
   await fetchData()
 
   // Show desktop notification about activity
-  if (!isNaN(currentStation.activity) && currentStation.activity >= notificationTreshold) {
+  if (!isNaN(currentStation.activity) && currentStation.activity >= notificationThreshold) {
     showNotification(currentStation.activity)
   }
 
@@ -167,16 +171,12 @@ const updateData = async () => {
 const initializeUI = (window) => {
   window.webContents.send('set-config',
     {
-      notificationTreshold, notificationInterval, notificationToggleChecked, minimizeToTray, STATIONS, currentStation
+      notificationThreshold, notificationInterval, notificationToggleChecked, minimizeToTray, STATIONS, currentStation
     }
   )
 
   // Get activity data, show notification if needed and send data to the renderer
   updateData()
-}
-
-const clearCache = () => {
-  stationsCache = []
 }
 
 const createMainWindow = () => {
@@ -246,7 +246,7 @@ app.whenReady().then(() => {
     // The website we get data from updates every ten minutes past the hour. Se we need to set a timer that triggers a data
     // fetching operation just after that update. However, the site can take a bit of time to update (up to some tens of seconds).
     // Here we get how many minutes until update happens from the present moment.
-    time = new Date()
+    let time = new Date()
     // Calculate how many minutes to the next time minutes are divisible by 10 (ie. 00, 10, 20 etc.)
     let offsetMinutes = 10 - (time.getMinutes() % 10 === 0 ? 10 : time.getMinutes() % 10)
     // How many seconds to a full minute? By adding this to offsetMinutes we give the site a 1 minute buffer to update
@@ -323,9 +323,9 @@ app.whenReady().then(() => {
     notificationInterval = newInterval
   })
 
-  // Triggers when user sets a new value for the notification treshold
-  ipcMain.on('set-treshold', (event, newTreshold) => {
-    notificationTreshold = newTreshold
+  // Triggers when user sets a new value for the notification threshold
+  ipcMain.on('set-threshold', (event, newThreshold) => {
+    notificationThreshold = newThreshold
   })
 
   // Triggers when user clicks the notifications on / off toggle
