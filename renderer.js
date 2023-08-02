@@ -32,6 +32,29 @@ const getStationActivity = (stationName) => {
   return stations.find(x => x.name === stationName).activity
 }
 
+const switchPage = (page) => {
+  switch (page) {
+    default:
+    case 'main':
+      settingsDiv.style.display = 'none'
+      stationsDiv.style.display = 'none'
+      mainDiv.style.display = 'block'
+      settingsIcon.src = 'bars.png'
+      break
+    case 'settings':
+      mainDiv.style.display = 'none'
+      stationsDiv.style.display = 'none'
+      settingsDiv.style.display = 'block'
+      settingsIcon.src = 'arrow.png'
+      break
+    case 'stations':
+      mainDiv.style.display = 'none'
+      settingsDiv.style.display = 'none'
+      stationsDiv.style.display = 'block'
+      settingsIcon.src = 'arrow.png'
+      break
+  }
+}
 
 // ------------------ UI UPDATE FUNCTIONS ------------------
 
@@ -211,8 +234,7 @@ thresholdInput.addEventListener('change', (event) => {
 // -------- SHARED EVENT LISTENERS FOR interval-input AND threshold-input --------
 
 
-const setSharedEventListeners = (element) => {
-
+for (let element of document.getElementsByClassName("number-input")) {
   // Clear input box when user clicks on it
   element.addEventListener('click', (event) => {
     element.value = ''
@@ -234,9 +256,6 @@ const setSharedEventListeners = (element) => {
     }
   })
 }
-
-setSharedEventListeners(intervalInput)
-setSharedEventListeners(thresholdInput)
 
 
 // ------------------ EVENT LISTENERS FOR toggle-input -------------------
@@ -264,29 +283,24 @@ trayInput.addEventListener('click', (event) => {
 settingsIcon.addEventListener('click', (event) => {
   // If in main page, switch to settings page
   if (mainDiv.style.display === 'block') {
-    mainDiv.style.display = 'none'
-    settingsDiv.style.display = 'block'
-    settingsIcon.src = 'arrow.png'
+    switchPage('settings')
   }
   // If in settings or stations page, switch back to main page
   else {
-    settingsDiv.style.display = 'none'
-    stationsDiv.style.display = 'none'
-    mainDiv.style.display = 'block'
-    settingsIcon.src = 'bars.png'
+    switchPage('main')
   }
 })
 
 
-// ------------------ EVENT LISTENERS FOR station-icon -------------------
+// ------------------ EVENT LISTENERS FOR .station-link -------------------
 
 
-// When user clicks the station icon, hide main page and show the stations page
-stationIcon.addEventListener('click', (event) => {
-  mainDiv.style.display = 'none'
-  stationsDiv.style.display = 'block'
-  settingsIcon.src = 'arrow.png'
-})
+// When user clicks the station name or icon, hide main page and show the stations page
+for (let element of document.getElementsByClassName("station-link")) {
+  element.addEventListener('click', (event) => {
+    switchPage('stations')
+  })
+}
 
 
 // ------------------ EVENT LISTENERS FOR stations-table -------------------
@@ -306,7 +320,5 @@ stationsTable.addEventListener('click', (event) => {
   updateActivityElement() // Show activity for the new station
 
   // Switch back to main page
-  stationsDiv.style.display = 'none'
-  mainDiv.style.display = 'block'
-  settingsIcon.src = 'bars.png'
+  switchPage('main')
 })

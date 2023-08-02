@@ -75,6 +75,10 @@ body {
   border-radius: 2px;
 }
 
+#station:hover {
+  cursor: pointer;
+}
+
 /* ----------------- SETTINGS PAGE ----------------- */
 
 
@@ -86,7 +90,7 @@ body {
   margin: 5px;
 }
 
-.input-box {
+.number-input {
   color: whitesmoke;
   /*background-color: #404040; */
   background-color: #202020;
