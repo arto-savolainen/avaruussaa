@@ -22,6 +22,12 @@ const bodyStyle = getComputedStyle(document.getElementById('body'))
 const defaultFontColor = bodyStyle.color
 const defaultFontSize = bodyStyle.fontSize
 
+const redColor = 'rgb(235, 53, 53)'
+const blueColor = 'rgb(23, 23, 252)'
+
+const barsImg = 'assets/bars.png'
+const arrowImg = 'assets/arrow.png'
+
 let notificationInterval
 let notificationThreshold
 let stations
@@ -32,6 +38,7 @@ const getStationActivity = (stationName) => {
   return stations.find(x => x.name === stationName).activity
 }
 
+// Change view
 const switchPage = (page) => {
   switch (page) {
     default:
@@ -39,19 +46,19 @@ const switchPage = (page) => {
       settingsDiv.style.display = 'none'
       stationsDiv.style.display = 'none'
       mainDiv.style.display = 'block'
-      settingsIcon.src = 'bars.png'
+      settingsIcon.src = barsImg
       break
     case 'settings':
       mainDiv.style.display = 'none'
       stationsDiv.style.display = 'none'
       settingsDiv.style.display = 'block'
-      settingsIcon.src = 'arrow.png'
+      settingsIcon.src = arrowImg
       break
     case 'stations':
       mainDiv.style.display = 'none'
       settingsDiv.style.display = 'none'
       stationsDiv.style.display = 'block'
-      settingsIcon.src = 'arrow.png'
+      settingsIcon.src = arrowImg
       break
   }
 }
@@ -59,7 +66,7 @@ const switchPage = (page) => {
 // ------------------ UI UPDATE FUNCTIONS ------------------
 
 
-// Receive updated activity value from main process and display it in the main window
+// Changes the style of the activity element. Called after updated data has been received
 const updateActivityStyle = () => {
   const activity = activityElement.innerText
 
@@ -72,22 +79,24 @@ const updateActivityStyle = () => {
     return
   }
 
-  // Fix activity style from previous not found message, use default styles copied from css at the creation of the renderer
-  // Settings a style property to null reverts it back to CSS stylesheet definitions
+  // Fix activity style in case previous value was an error message,
+  // use default styles copied from CSS at the creation of the renderer
+  // Setting a style property to null reverts it back to its CSS definition
   activityElement.style.fontSize = null
   activityElement.style.marginTop = null
   activityElement.style.marginBottom = null
 
   // If activity is at or above threshold, color the displayed value red
   if (activity >= notificationThreshold) {
-    activityElement.style.color = 'rgb(235, 53, 53)'
+    activityElement.style.color = redColor
   }
   else {
     // If activity is below alert threshold, color it blue
-    activityElement.style.color = 'rgb(23, 23, 252)'
+    activityElement.style.color = blueColor
   }
 }
 
+// Updates DOM to display the new activity value, or possible error
 const updateActivityElement = (errorMsg) => {
   if (errorMsg) {
     activityElement.innerText = errorMsg
@@ -101,9 +110,11 @@ const updateActivityElement = (errorMsg) => {
 
 // Update the display showing to the user how much time left until the next time activity is updated
 const updateTimerDisplay = (time) => {
-  time = Math.ceil(time / 1000) // Processing delay is also subtracted in the previous step, round up to fix this
+  // Time is received in milliseconds and converted to seconds
+  // Processing delay is also subtracted in the previous step, round up to fix this
+  time = Math.ceil(time / 1000) // 
 
-  // Freeze time display at 00:00:00 (or whatever it last was) if something goes wrong
+  // Freeze time display at 00:00:00 (or whatever it last was) if it would go negative
   if (time < 0) {
     return
   }

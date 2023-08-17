@@ -1,0 +1,3 @@
+Avaruussää-sovellus monitoroi magneettista aktiivisuutta Suomen yllä, ja ilmoittaa käyttäjälle kun revontulet ovat todennäköisiä. Valittavissa ovat Ilmatieteen laitoksen 12 havaintoasemaa eri puolilla Suomea.
+
+![Kuva - Päänäkymä](screenshots/main-view.png?raw=true "Päänäkymä") ![Kuva - Havaintoasemat](screenshots/stations-view.png?raw=true "Havaintoasemat") ![Kuva - Asetukset](screenshots/settings-view.png?raw=true "Asetukset")

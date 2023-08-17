@@ -233,7 +233,7 @@ const createTray = () => {
 
 app.whenReady().then(() => {
   createMainWindow()
-  // mainWindow.webContents.openDevTools()
+  // mainWindow.webContents.openDevTools() // Open a separate console window for debugging
 
   // When mainWindow has finished loading and is ready to display
   mainWindow.webContents.once('did-finish-load', () => {
